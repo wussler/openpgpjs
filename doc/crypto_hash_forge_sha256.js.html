@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: crypto/hash/forge_sha256.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: crypto/hash/forge_sha256.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>/**
+ * Secure Hash Algorithm with 256-bit digest (SHA-256) implementation.
+ *
+ * See FIPS 180-2 for details.
+ *
+ * This implementation is currently limited to message lengths (in bytes) that
+ * are up to 32-bits in size.
+ *
+ * @author Dave Longley
+ *
+ * Copyright (c) 2010-2012 Digital Bazaar, Inc.
+ */
+
+var sha256 = module.exports = {};
+var util = require('./forge_util.js');
+
+// sha-256 padding bytes not initialized yet
+var _padding = null;
+var _initialized = false;
+
+// table of constants
+var _k = null;
+
+/**
+ * Initializes the constant tables.
+ */
+var _init = function() {
+  // create padding
+  _padding = String.fromCharCode(128);
+  _padding += util.fillString(String.fromCharCode(0x00), 64);
+
+  // create K table for SHA-256
+  _k = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+
+  // now initialized
+  _initialized = true;
+};
+
+/**
+ * Updates a SHA-256 state with the given byte buffer.
+ *
+ * @param s the SHA-256 state to update.
+ * @param w the array to use to store words.
+ * @param bytes the byte buffer to update with.
+ */
+var _update = function(s, w, bytes) {
+  // consume 512 bit (64 byte) chunks
+  var t1, t2, s0, s1, ch, maj, i, a, b, c, d, e, f, g, h;
+  var len = bytes.length();
+  while (len >= 64) {
+    // the w array will be populated with sixteen 32-bit big-endian words
+    // and then extended into 64 32-bit words according to SHA-256
+    for (i = 0; i &lt; 16; ++i) {
+      w[i] = bytes.getInt32();
+    }
+    for (; i &lt; 64; ++i) {
+      // XOR word 2 words ago rot right 17, rot right 19, shft right 10
+      t1 = w[i - 2];
+      t1 =
+        ((t1 >>> 17) | (t1 &lt;&lt; 15)) ^
+        ((t1 >>> 19) | (t1 &lt;&lt; 13)) ^
+        (t1 >>> 10);
+      // XOR word 15 words ago rot right 7, rot right 18, shft right 3
+      t2 = w[i - 15];
+      t2 =
+        ((t2 >>> 7) | (t2 &lt;&lt; 25)) ^
+        ((t2 >>> 18) | (t2 &lt;&lt; 14)) ^
+        (t2 >>> 3);
+      // sum(t1, word 7 ago, t2, word 16 ago) modulo 2^32
+      w[i] = (t1 + w[i - 7] + t2 + w[i - 16]) &amp; 0xFFFFFFFF;
+    }
+
+    // initialize hash value for this chunk
+    a = s.h0;
+    b = s.h1;
+    c = s.h2;
+    d = s.h3;
+    e = s.h4;
+    f = s.h5;
+    g = s.h6;
+    h = s.h7;
+
+    // round function
+    for (i = 0; i &lt; 64; ++i) {
+      // Sum1(e)
+      s1 =
+        ((e >>> 6) | (e &lt;&lt; 26)) ^
+        ((e >>> 11) | (e &lt;&lt; 21)) ^
+        ((e >>> 25) | (e &lt;&lt; 7));
+      // Ch(e, f, g) (optimized the same way as SHA-1)
+      ch = g ^ (e &amp; (f ^ g));
+      // Sum0(a)
+      s0 =
+        ((a >>> 2) | (a &lt;&lt; 30)) ^
+        ((a >>> 13) | (a &lt;&lt; 19)) ^
+        ((a >>> 22) | (a &lt;&lt; 10));
+      // Maj(a, b, c) (optimized the same way as SHA-1)
+      maj = (a &amp; b) | (c &amp; (a ^ b));
+
+      // main algorithm
+      t1 = h + s1 + ch + _k[i] + w[i];
+      t2 = s0 + maj;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + t1) &amp; 0xFFFFFFFF;
+      d = c;
+      c = b;
+      b = a;
+      a = (t1 + t2) &amp; 0xFFFFFFFF;
+    }
+
+    // update hash state
+    s.h0 = (s.h0 + a) &amp; 0xFFFFFFFF;
+    s.h1 = (s.h1 + b) &amp; 0xFFFFFFFF;
+    s.h2 = (s.h2 + c) &amp; 0xFFFFFFFF;
+    s.h3 = (s.h3 + d) &amp; 0xFFFFFFFF;
+    s.h4 = (s.h4 + e) &amp; 0xFFFFFFFF;
+    s.h5 = (s.h5 + f) &amp; 0xFFFFFFFF;
+    s.h6 = (s.h6 + g) &amp; 0xFFFFFFFF;
+    s.h7 = (s.h7 + h) &amp; 0xFFFFFFFF;
+    len -= 64;
+  }
+};
+
+/**
+ * Creates a SHA-256 message digest object.
+ *
+ * @return a message digest object.
+ */
+sha256.create = function() {
+  // do initialization as necessary
+  if (!_initialized) {
+    _init();
+  }
+
+  // SHA-256 state contains eight 32-bit integers
+  var _state = null;
+
+  // input buffer
+  var _input = util.createBuffer();
+
+  // used for word storage
+  var _w = new Array(64);
+
+  // message digest object
+  var md = {
+    algorithm: 'sha256',
+    blockLength: 64,
+    digestLength: 32,
+    // length of message so far (does not including padding)
+    messageLength: 0
+  };
+
+  /**
+   * Starts the digest.
+   *
+   * @return this digest object.
+   */
+  md.start = function() {
+    md.messageLength = 0;
+    _input = util.createBuffer();
+    _state = {
+      h0: 0x6A09E667,
+      h1: 0xBB67AE85,
+      h2: 0x3C6EF372,
+      h3: 0xA54FF53A,
+      h4: 0x510E527F,
+      h5: 0x9B05688C,
+      h6: 0x1F83D9AB,
+      h7: 0x5BE0CD19
+    };
+    return md;
+  };
+  // start digest automatically for first time
+  md.start();
+
+  /**
+   * Updates the digest with the given message input. The given input can
+   * treated as raw input (no encoding will be applied) or an encoding of
+   * 'utf8' maybe given to encode the input using UTF-8.
+   *
+   * @param msg the message input to update with.
+   * @param encoding the encoding to use (default: 'raw', other: 'utf8').
+   *
+   * @return this digest object.
+   */
+  md.update = function(msg, encoding) {
+    if (encoding === 'utf8') {
+      msg = util.encodeUtf8(msg);
+    }
+
+    // update message length
+    md.messageLength += msg.length;
+
+    // add bytes to input buffer
+    _input.putBytes(msg);
+
+    // process bytes
+    _update(_state, _w, _input);
+
+    // compact input buffer every 2K or if empty
+    if (_input.read > 2048 || _input.length() === 0) {
+      _input.compact();
+    }
+
+    return md;
+  };
+
+  /**
+   * Produces the digest.
+   *
+   * @return a byte buffer containing the digest value.
+   */
+  md.digest = function() {
+    /* Note: Here we copy the remaining bytes in the input buffer and
+      add the appropriate SHA-256 padding. Then we do the final update
+      on a copy of the state so that if the user wants to get
+      intermediate digests they can do so. */
+
+    /* Determine the number of bytes that must be added to the message
+      to ensure its length is congruent to 448 mod 512. In other words,
+      a 64-bit integer that gives the length of the message will be
+      appended to the message and whatever the length of the message is
+      plus 64 bits must be a multiple of 512. So the length of the
+      message must be congruent to 448 mod 512 because 512 - 64 = 448.
+
+      In order to fill up the message length it must be filled with
+      padding that begins with 1 bit followed by all 0 bits. Padding
+      must *always* be present, so if the message length is already
+      congruent to 448 mod 512, then 512 padding bits must be added. */
+
+    // 512 bits == 64 bytes, 448 bits == 56 bytes, 64 bits = 8 bytes
+    // _padding starts with 1 byte with first bit is set in it which
+    // is byte value 128, then there may be up to 63 other pad bytes
+    var len = md.messageLength;
+    var padBytes = util.createBuffer();
+    padBytes.putBytes(_input.bytes());
+    padBytes.putBytes(_padding.substr(0, 64 - ((len + 8) % 64)));
+
+    /* Now append length of the message. The length is appended in bits
+      as a 64-bit number in big-endian order. Since we store the length
+      in bytes, we must multiply it by 8 (or left shift by 3). So here
+      store the high 3 bits in the low end of the first 32-bits of the
+      64-bit number and the lower 5 bits in the high end of the second
+      32-bits. */
+    padBytes.putInt32((len >>> 29) &amp; 0xFF);
+    padBytes.putInt32((len &lt;&lt; 3) &amp; 0xFFFFFFFF);
+    var s2 = {
+      h0: _state.h0,
+      h1: _state.h1,
+      h2: _state.h2,
+      h3: _state.h3,
+      h4: _state.h4,
+      h5: _state.h5,
+      h6: _state.h6,
+      h7: _state.h7
+    };
+    _update(s2, _w, padBytes);
+    var rval = util.createBuffer();
+    rval.putInt32(s2.h0);
+    rval.putInt32(s2.h1);
+    rval.putInt32(s2.h2);
+    rval.putInt32(s2.h3);
+    rval.putInt32(s2.h4);
+    rval.putInt32(s2.h5);
+    rval.putInt32(s2.h6);
+    rval.putInt32(s2.h7);
+    return rval;
+  };
+
+  return md;
+};</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-async_proxy.html">async_proxy</a></li><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_hash_sha.html">crypto/hash/sha</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-hkp_hkp.html">hkp/hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="module-async_proxy-AsyncProxy.html">async_proxy~AsyncProxy</a></li><li><a href="module-cleartext-CleartextMessage.html">cleartext~CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">config/localStorage~LocalStorage</a></li><li><a href="module-hkp_hkp-HKP.html">hkp/hkp~HKP</a></li><li><a href="module-keyring_keyring-Keyring.html">keyring/keyring~Keyring</a></li><li><a href="module-key-Key.html">key~Key</a></li><li><a href="module-key-SubKey.html">key~SubKey</a></li><li><a href="module-key-User.html">key~User</a></li><li><a href="module-message-Message.html">message~Message</a></li><li><a href="module-packet_compressed-Compressed.html">packet/compressed~Compressed</a></li><li><a href="module-packet_literal-Literal.html">packet/literal~Literal</a></li><li><a href="module-packet_marker-Marker.html">packet/marker~Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">packet/one_pass_signature~OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">packet/packetlist~Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">packet/public_key_encrypted_session_key~PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">packet/public_key~PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">packet/public_subkey~PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">packet/secret_key~SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">packet/secret_subkey~SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">packet/signature~Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">packet/sym_encrypted_integrity_protected~SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">packet/sym_encrypted_session_key~SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">packet/symmetrically_encrypted~SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">packet/trust~Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">packet/user_attribute~UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">packet/userid~Userid</a></li><li><a href="module-type_keyid-Keyid.html">type/keyid~Keyid</a></li><li><a href="module-type_mpi-MPI.html">type/mpi~MPI</a></li><li><a href="module-type_s2k-S2K.html">type/s2k~S2K</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_init">_init</a></li><li><a href="global.html#_update">_update</a></li><li><a href="global.html#sha256">sha256</a></li><li><a href="global.html#util">util</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Sat Dec 12 2015 10:48:55 GMT+0700 (ICT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

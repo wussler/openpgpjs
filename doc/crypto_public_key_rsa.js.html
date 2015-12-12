@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: crypto/public_key/rsa.js</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Source: crypto/public_key/rsa.js</h1>
+    
+    
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source"><code>// GPG4Browsers - An OpenPGP implementation in javascript
+// Copyright (C) 2011 Recurity Labs GmbH
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+//
+// RSA implementation
+
+/**
+ * @requires crypto/public_key/jsbn
+ * @requires crypto/random
+ * @requires util
+ * @module crypto/public_key/rsa
+ */
+
+var BigInteger = require('./jsbn.js'),
+  util = require('../../util.js'),
+  random = require('../random.js'),
+  config = require('../../config');
+
+function SecureRandom() {
+  function nextBytes(byteArray) {
+    for (var n = 0; n &lt; byteArray.length; n++) {
+      byteArray[n] = random.getSecureRandomOctet();
+    }
+  }
+  this.nextBytes = nextBytes;
+}
+
+var blinder = BigInteger.ZERO;
+var unblinder = BigInteger.ZERO;
+
+function blind(m, n, e) {
+  if (unblinder.bitLength() === n.bitLength()) {
+    unblinder = unblinder.square().mod(n);
+  } else {
+    unblinder = random.getRandomBigIntegerInRange(BigInteger.TWO, n);
+  }
+  blinder = unblinder.modInverse(n).modPow(e, n);
+  return m.multiply(blinder).mod(n);
+}
+
+function unblind(t, n) {
+  return t.multiply(unblinder).mod(n);
+}
+
+function RSA() {
+  /**
+   * This function uses jsbn Big Num library to decrypt RSA
+   * @param m
+   *            message
+   * @param n
+   *            RSA public modulus n as BigInteger
+   * @param e
+   *            RSA public exponent as BigInteger
+   * @param d
+   *            RSA d as BigInteger
+   * @param p
+   *            RSA p as BigInteger
+   * @param q
+   *            RSA q as BigInteger
+   * @param u
+   *            RSA u as BigInteger
+   * @return {BigInteger} The decrypted value of the message
+   */
+  function decrypt(m, n, e, d, p, q, u) {
+    if (config.rsa_blinding) {
+      m = blind(m, n, e);
+    }
+    var xp = m.mod(p).modPow(d.mod(p.subtract(BigInteger.ONE)), p);
+    var xq = m.mod(q).modPow(d.mod(q.subtract(BigInteger.ONE)), q);
+    util.print_debug("rsa.js decrypt\nxpn:" + util.hexstrdump(xp.toMPI()) + "\nxqn:" + util.hexstrdump(xq.toMPI()));
+
+    var t = xq.subtract(xp);
+    if (t[0] === 0) {
+      t = xp.subtract(xq);
+      t = t.multiply(u).mod(q);
+      t = q.subtract(t);
+    } else {
+      t = t.multiply(u).mod(q);
+    }
+    t = t.multiply(p).add(xp);
+    if (config.rsa_blinding) {
+      t = unblind(t, n);
+    }
+    return t;
+  }
+
+  /**
+   * encrypt message
+   * @param m message as BigInteger
+   * @param e public MPI part as BigInteger
+   * @param n public MPI part as BigInteger
+   * @return BigInteger
+   */
+  function encrypt(m, e, n) {
+    return m.modPowInt(e, n);
+  }
+
+  /* Sign and Verify */
+  function sign(m, d, n) {
+    return m.modPow(d, n);
+  }
+
+  function verify(x, e, n) {
+    return x.modPowInt(e, n);
+  }
+
+  // "empty" RSA key constructor
+
+  function keyObject() {
+    this.n = null;
+    this.e = 0;
+    this.ee = null;
+    this.d = null;
+    this.p = null;
+    this.q = null;
+    this.dmp1 = null;
+    this.dmq1 = null;
+    this.u = null;
+  }
+
+  // Generate a new random private key B bits long, using public expt E
+
+  function generate(B, E) {
+    var webCrypto = util.getWebCrypto();
+
+    //
+    // Native RSA keygen using Web Crypto
+    //
+
+    if (webCrypto) {
+      var Euint32 = new Uint32Array([parseInt(E, 16)]); // get integer of exponent
+      var Euint8 = new Uint8Array(Euint32.buffer); // get bytes of exponent
+      var keyGenOpt;
+
+      var keys;
+      if (window.crypto &amp;&amp; window.crypto.webkitSubtle) {
+        // outdated spec implemented by Webkit
+        keyGenOpt = {
+          name: 'RSA-OAEP',
+          modulusLength: B, // the specified keysize in bits
+          publicExponent: Euint8.subarray(0, 3), // take three bytes (max 65537)
+        };
+        keys = webCrypto.generateKey(keyGenOpt, true, ['encrypt', 'decrypt']);
+      }
+      else {
+        // current standard spec
+        keyGenOpt = {
+          name: 'RSASSA-PKCS1-v1_5',
+          modulusLength: B, // the specified keysize in bits
+          publicExponent: Euint8.subarray(0, 3), // take three bytes (max 65537)
+          hash: {
+            name: 'SHA-1' // not required for actual RSA keys, but for crypto api 'sign' and 'verify'
+          }
+        };
+        
+        keys = webCrypto.generateKey(keyGenOpt, true, ['sign', 'verify']);
+        if (!(keys instanceof Promise)) { // IE11 KeyOperation
+          keys = convertKeyOperation(keys, 'Error generating RSA key pair.');
+        }
+      }
+
+      return keys.then(exportKey).then(function(key) {
+        if (key instanceof ArrayBuffer) {
+          // parse raw ArrayBuffer bytes to jwk/json (WebKit/Safari/IE11 quirk)
+          return decodeKey(JSON.parse(String.fromCharCode.apply(null, new Uint8Array(key))));
+        }
+        return decodeKey(key);
+      });
+    }
+
+    function exportKey(keypair) {
+      // export the generated keys as JsonWebKey (JWK)
+      // https://tools.ietf.org/html/draft-ietf-jose-json-web-key-33
+      var key = webCrypto.exportKey('jwk', keypair.privateKey);
+      if (!(key instanceof Promise)) { // IE11 KeyOperation
+        key = convertKeyOperation(key, 'Error exporting RSA key pair.');
+      }
+      return key;
+    }
+
+    function decodeKey(jwk) {
+      // map JWK parameters to local BigInteger type system
+      var key = new keyObject();
+      key.n = toBigInteger(jwk.n);
+      key.ee = new BigInteger(E, 16);
+      key.d = toBigInteger(jwk.d);
+      key.p = toBigInteger(jwk.p);
+      key.q = toBigInteger(jwk.q);
+      key.u = key.p.modInverse(key.q);
+
+      function toBigInteger(base64url) {
+        var base64 = base64url.replace(/\-/g, '+').replace(/_/g, '/');
+        var hex = util.hexstrdump(atob(base64));
+        return new BigInteger(hex, 16);
+      }
+
+      return key;
+    }
+
+    function convertKeyOperation(keyop, errmsg) {
+      return new Promise(function(resolve, reject) {
+        keyop.onerror = function (err) { 
+          reject(new Error(errmsg));
+        }
+        keyop.oncomplete = function (e) {
+          resolve(e.target.result);
+        }
+      });
+    }
+
+    //
+    // JS code
+    //
+
+    return new Promise(function(resolve) {
+      var key = new keyObject();
+      var rng = new SecureRandom();
+      var qs = B >> 1;
+      key.e = parseInt(E, 16);
+      key.ee = new BigInteger(E, 16);
+
+      for (;;) {
+        for (;;) {
+          key.p = new BigInteger(B - qs, 1, rng);
+          if (key.p.subtract(BigInteger.ONE).gcd(key.ee).compareTo(BigInteger.ONE) === 0 &amp;&amp; key.p.isProbablePrime(10))
+            break;
+        }
+        for (;;) {
+          key.q = new BigInteger(qs, 1, rng);
+          if (key.q.subtract(BigInteger.ONE).gcd(key.ee).compareTo(BigInteger.ONE) === 0 &amp;&amp; key.q.isProbablePrime(10))
+            break;
+        }
+        if (key.p.compareTo(key.q) &lt;= 0) {
+          var t = key.p;
+          key.p = key.q;
+          key.q = t;
+        }
+        var p1 = key.p.subtract(BigInteger.ONE);
+        var q1 = key.q.subtract(BigInteger.ONE);
+        var phi = p1.multiply(q1);
+        if (phi.gcd(key.ee).compareTo(BigInteger.ONE) === 0) {
+          key.n = key.p.multiply(key.q);
+          key.d = key.ee.modInverse(phi);
+          key.dmp1 = key.d.mod(p1);
+          key.dmq1 = key.d.mod(q1);
+          key.u = key.p.modInverse(key.q);
+          break;
+        }
+      }
+
+      resolve(key);
+    });
+  }
+
+  this.encrypt = encrypt;
+  this.decrypt = decrypt;
+  this.verify = verify;
+  this.sign = sign;
+  this.generate = generate;
+  this.keyObject = keyObject;
+}
+
+module.exports = RSA;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-async_proxy.html">async_proxy</a></li><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_hash_sha.html">crypto/hash/sha</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-hkp_hkp.html">hkp/hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="module-async_proxy-AsyncProxy.html">async_proxy~AsyncProxy</a></li><li><a href="module-cleartext-CleartextMessage.html">cleartext~CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">config/localStorage~LocalStorage</a></li><li><a href="module-hkp_hkp-HKP.html">hkp/hkp~HKP</a></li><li><a href="module-keyring_keyring-Keyring.html">keyring/keyring~Keyring</a></li><li><a href="module-key-Key.html">key~Key</a></li><li><a href="module-key-SubKey.html">key~SubKey</a></li><li><a href="module-key-User.html">key~User</a></li><li><a href="module-message-Message.html">message~Message</a></li><li><a href="module-packet_compressed-Compressed.html">packet/compressed~Compressed</a></li><li><a href="module-packet_literal-Literal.html">packet/literal~Literal</a></li><li><a href="module-packet_marker-Marker.html">packet/marker~Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">packet/one_pass_signature~OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">packet/packetlist~Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">packet/public_key_encrypted_session_key~PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">packet/public_key~PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">packet/public_subkey~PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">packet/secret_key~SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">packet/secret_subkey~SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">packet/signature~Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">packet/sym_encrypted_integrity_protected~SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">packet/sym_encrypted_session_key~SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">packet/symmetrically_encrypted~SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">packet/trust~Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">packet/user_attribute~UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">packet/userid~Userid</a></li><li><a href="module-type_keyid-Keyid.html">type/keyid~Keyid</a></li><li><a href="module-type_mpi-MPI.html">type/mpi~MPI</a></li><li><a href="module-type_s2k-S2K.html">type/s2k~S2K</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_init">_init</a></li><li><a href="global.html#_update">_update</a></li><li><a href="global.html#sha256">sha256</a></li><li><a href="global.html#util">util</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.3</a> on Sat Dec 12 2015 10:48:55 GMT+0700 (ICT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
