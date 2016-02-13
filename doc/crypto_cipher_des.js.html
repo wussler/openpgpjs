@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>JSDoc: Source: crypto/cipher/des.js</title>
-    
+
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
     <!--[if lt IE 9]>
@@ -16,16 +16,17 @@
 <body>
 
 <div id="main">
-    
+
     <h1 class="page-title">Source: crypto/cipher/des.js</h1>
+
     
-    
+
 
 
     
     <section>
         <article>
-            <pre class="prettyprint source"><code>//Paul Tero, July 2001
+            <pre class="prettyprint source linenums"><code>//Paul Tero, July 2001
 //http://www.tero.co.uk/des/
 //
 //Optimised for performance with large blocks by Michael Hayworth, November 2001
@@ -52,6 +53,7 @@
  * @module crypto/cipher/des
  */
 
+'use strict';
 
 function des(keys, message, encrypt, mode, iv, padding) {
   //declaring this locally speeds things up a bit
@@ -107,14 +109,14 @@ function des(keys, message, encrypt, mode, iv, padding) {
 
   //create the 16 or 48 subkeys we will need
   var m = 0,
-    i, j, temp, temp2, right1, right2, left, right, looping;
+    i, j, temp, right1, right2, left, right, looping;
   var cbcleft, cbcleft2, cbcright, cbcright2;
   var endloop, loopinc;
   var len = message.length;
-  var chunk = 0;
+
   //set up the loops for single and triple des
-  var iterations = keys.length == 32 ? 3 : 9; //single or triple des
-  if (iterations == 3) {
+  var iterations = keys.length === 32 ? 3 : 9; //single or triple des
+  if (iterations === 3) {
     looping = encrypt ? new Array(0, 32, 2) : new Array(30, -2, -2);
   } else {
     looping = encrypt ? new Array(0, 32, 2, 62, 30, -2, 64, 96, 2) : new Array(94, 62, -2, 32, 64, 2, 30, -2, -2);
@@ -128,24 +130,22 @@ function des(keys, message, encrypt, mode, iv, padding) {
   }
 
   //store the result here
-  result = "";
-  tempresult = "";
+  var result = new Uint8Array(len);
+  var k = 0;
 
-  if (mode == 1) { //CBC mode
-    cbcleft = (iv.charCodeAt(m++) &lt;&lt; 24) | (iv.charCodeAt(m++) &lt;&lt; 16) | (iv.charCodeAt(m++) &lt;&lt; 8) | iv.charCodeAt(m++);
-    cbcright = (iv.charCodeAt(m++) &lt;&lt; 24) | (iv.charCodeAt(m++) &lt;&lt; 16) | (iv.charCodeAt(m++) &lt;&lt; 8) | iv.charCodeAt(m++);
+  if (mode === 1) { //CBC mode
+    cbcleft = (iv[m++] &lt;&lt; 24) | (iv[m++] &lt;&lt; 16) | (iv[m++] &lt;&lt; 8) | iv[m++];
+    cbcright = (iv[m++] &lt;&lt; 24) | (iv[m++] &lt;&lt; 16) | (iv[m++] &lt;&lt; 8) | iv[m++];
     m = 0;
   }
 
   //loop through each 64 bit chunk of the message
   while (m &lt; len) {
-    left = (message.charCodeAt(m++) &lt;&lt; 24) | (message.charCodeAt(m++) &lt;&lt; 16) | (message.charCodeAt(m++) &lt;&lt; 8) | message
-      .charCodeAt(m++);
-    right = (message.charCodeAt(m++) &lt;&lt; 24) | (message.charCodeAt(m++) &lt;&lt; 16) | (message.charCodeAt(m++) &lt;&lt; 8) |
-      message.charCodeAt(m++);
+    left = (message[m++] &lt;&lt; 24) | (message[m++] &lt;&lt; 16) | (message[m++] &lt;&lt; 8) | message[m++];
+    right = (message[m++] &lt;&lt; 24) | (message[m++] &lt;&lt; 16) | (message[m++] &lt;&lt; 8) | message[m++];
 
     //for Cipher Block Chaining mode, xor the message with the previous result
-    if (mode == 1) {
+    if (mode === 1) {
       if (encrypt) {
         left ^= cbcleft;
         right ^= cbcright;
@@ -181,8 +181,8 @@ function des(keys, message, encrypt, mode, iv, padding) {
     for (j = 0; j &lt; iterations; j += 3) {
       endloop = looping[j + 1];
       loopinc = looping[j + 2];
-      //now go through and perform the encryption or decryption  
-      for (i = looping[j]; i != endloop; i += loopinc) { //for efficiency
+      //now go through and perform the encryption or decryption
+      for (i = looping[j]; i !== endloop; i += loopinc) { //for efficiency
         right1 = right ^ keys[i];
         right2 = ((right >>> 4) | (right &lt;&lt; 28)) ^ keys[i + 1];
         //the result is attained by passing these bytes through the S selection functions
@@ -219,7 +219,7 @@ function des(keys, message, encrypt, mode, iv, padding) {
     left ^= (temp &lt;&lt; 4);
 
     //for Cipher Block Chaining mode, xor the message with the previous result
-    if (mode == 1) {
+    if (mode === 1) {
       if (encrypt) {
         cbcleft = left;
         cbcright = right;
@@ -228,19 +228,16 @@ function des(keys, message, encrypt, mode, iv, padding) {
         right ^= cbcright2;
       }
     }
-    tempresult += String.fromCharCode((left >>> 24), ((left >>> 16) &amp; 0xff), ((left >>> 8) &amp; 0xff), (left &amp; 0xff), (
-      right >>> 24), ((right >>> 16) &amp; 0xff), ((right >>> 8) &amp; 0xff), (right &amp; 0xff));
 
-    chunk += 8;
-    if (chunk == 512) {
-      result += tempresult;
-      tempresult = "";
-      chunk = 0;
-    }
+    result[k++] = (left >>> 24);
+    result[k++] = ((left >>> 16) &amp; 0xff);
+    result[k++] = ((left >>> 8) &amp; 0xff);
+    result[k++] = (left &amp; 0xff);
+    result[k++] = (right >>> 24);
+    result[k++] = ((right >>> 16) &amp; 0xff);
+    result[k++] = ((right >>> 8) &amp; 0xff);
+    result[k++] = (right &amp; 0xff);
   } //for every 8 characters, or 64 bits in the message
-
-  //return the result as an array
-  result += tempresult;
 
   //only remove padding if decrypting - note that you need to use the same padding option for both encrypt and decrypt
   if (!encrypt) {
@@ -258,33 +255,33 @@ function des(keys, message, encrypt, mode, iv, padding) {
 
 function des_createKeys(key) {
   //declaring this locally speeds things up a bit
-  pc2bytes0 = new Array(0, 0x4, 0x20000000, 0x20000004, 0x10000, 0x10004, 0x20010000, 0x20010004, 0x200, 0x204,
+  var pc2bytes0 = new Array(0, 0x4, 0x20000000, 0x20000004, 0x10000, 0x10004, 0x20010000, 0x20010004, 0x200, 0x204,
     0x20000200, 0x20000204, 0x10200, 0x10204, 0x20010200, 0x20010204);
-  pc2bytes1 = new Array(0, 0x1, 0x100000, 0x100001, 0x4000000, 0x4000001, 0x4100000, 0x4100001, 0x100, 0x101, 0x100100,
+  var pc2bytes1 = new Array(0, 0x1, 0x100000, 0x100001, 0x4000000, 0x4000001, 0x4100000, 0x4100001, 0x100, 0x101, 0x100100,
     0x100101, 0x4000100, 0x4000101, 0x4100100, 0x4100101);
-  pc2bytes2 = new Array(0, 0x8, 0x800, 0x808, 0x1000000, 0x1000008, 0x1000800, 0x1000808, 0, 0x8, 0x800, 0x808,
+  var pc2bytes2 = new Array(0, 0x8, 0x800, 0x808, 0x1000000, 0x1000008, 0x1000800, 0x1000808, 0, 0x8, 0x800, 0x808,
     0x1000000, 0x1000008, 0x1000800, 0x1000808);
-  pc2bytes3 = new Array(0, 0x200000, 0x8000000, 0x8200000, 0x2000, 0x202000, 0x8002000, 0x8202000, 0x20000, 0x220000,
+  var pc2bytes3 = new Array(0, 0x200000, 0x8000000, 0x8200000, 0x2000, 0x202000, 0x8002000, 0x8202000, 0x20000, 0x220000,
     0x8020000, 0x8220000, 0x22000, 0x222000, 0x8022000, 0x8222000);
-  pc2bytes4 = new Array(0, 0x40000, 0x10, 0x40010, 0, 0x40000, 0x10, 0x40010, 0x1000, 0x41000, 0x1010, 0x41010, 0x1000,
+  var pc2bytes4 = new Array(0, 0x40000, 0x10, 0x40010, 0, 0x40000, 0x10, 0x40010, 0x1000, 0x41000, 0x1010, 0x41010, 0x1000,
     0x41000, 0x1010, 0x41010);
-  pc2bytes5 = new Array(0, 0x400, 0x20, 0x420, 0, 0x400, 0x20, 0x420, 0x2000000, 0x2000400, 0x2000020, 0x2000420,
+  var pc2bytes5 = new Array(0, 0x400, 0x20, 0x420, 0, 0x400, 0x20, 0x420, 0x2000000, 0x2000400, 0x2000020, 0x2000420,
     0x2000000, 0x2000400, 0x2000020, 0x2000420);
-  pc2bytes6 = new Array(0, 0x10000000, 0x80000, 0x10080000, 0x2, 0x10000002, 0x80002, 0x10080002, 0, 0x10000000,
+  var pc2bytes6 = new Array(0, 0x10000000, 0x80000, 0x10080000, 0x2, 0x10000002, 0x80002, 0x10080002, 0, 0x10000000,
     0x80000, 0x10080000, 0x2, 0x10000002, 0x80002, 0x10080002);
-  pc2bytes7 = new Array(0, 0x10000, 0x800, 0x10800, 0x20000000, 0x20010000, 0x20000800, 0x20010800, 0x20000, 0x30000,
+  var pc2bytes7 = new Array(0, 0x10000, 0x800, 0x10800, 0x20000000, 0x20010000, 0x20000800, 0x20010800, 0x20000, 0x30000,
     0x20800, 0x30800, 0x20020000, 0x20030000, 0x20020800, 0x20030800);
-  pc2bytes8 = new Array(0, 0x40000, 0, 0x40000, 0x2, 0x40002, 0x2, 0x40002, 0x2000000, 0x2040000, 0x2000000, 0x2040000,
+  var pc2bytes8 = new Array(0, 0x40000, 0, 0x40000, 0x2, 0x40002, 0x2, 0x40002, 0x2000000, 0x2040000, 0x2000000, 0x2040000,
     0x2000002, 0x2040002, 0x2000002, 0x2040002);
-  pc2bytes9 = new Array(0, 0x10000000, 0x8, 0x10000008, 0, 0x10000000, 0x8, 0x10000008, 0x400, 0x10000400, 0x408,
+  var pc2bytes9 = new Array(0, 0x10000000, 0x8, 0x10000008, 0, 0x10000000, 0x8, 0x10000008, 0x400, 0x10000400, 0x408,
     0x10000408, 0x400, 0x10000400, 0x408, 0x10000408);
-  pc2bytes10 = new Array(0, 0x20, 0, 0x20, 0x100000, 0x100020, 0x100000, 0x100020, 0x2000, 0x2020, 0x2000, 0x2020,
+  var pc2bytes10 = new Array(0, 0x20, 0, 0x20, 0x100000, 0x100020, 0x100000, 0x100020, 0x2000, 0x2020, 0x2000, 0x2020,
     0x102000, 0x102020, 0x102000, 0x102020);
-  pc2bytes11 = new Array(0, 0x1000000, 0x200, 0x1000200, 0x200000, 0x1200000, 0x200200, 0x1200200, 0x4000000, 0x5000000,
+  var pc2bytes11 = new Array(0, 0x1000000, 0x200, 0x1000200, 0x200000, 0x1200000, 0x200200, 0x1200200, 0x4000000, 0x5000000,
     0x4000200, 0x5000200, 0x4200000, 0x5200000, 0x4200200, 0x5200200);
-  pc2bytes12 = new Array(0, 0x1000, 0x8000000, 0x8001000, 0x80000, 0x81000, 0x8080000, 0x8081000, 0x10, 0x1010,
+  var pc2bytes12 = new Array(0, 0x1000, 0x8000000, 0x8001000, 0x80000, 0x81000, 0x8080000, 0x8081000, 0x10, 0x1010,
     0x8000010, 0x8001010, 0x80010, 0x81010, 0x8080010, 0x8081010);
-  pc2bytes13 = new Array(0, 0x4, 0x100, 0x104, 0, 0x4, 0x100, 0x104, 0x1, 0x5, 0x101, 0x105, 0x1, 0x5, 0x101, 0x105);
+  var pc2bytes13 = new Array(0, 0x4, 0x100, 0x104, 0, 0x4, 0x100, 0x104, 0x1, 0x5, 0x101, 0x105, 0x1, 0x5, 0x101, 0x105);
 
   //how many iterations (1 for des, 3 for triple des)
   var iterations = key.length > 8 ? 3 : 1; //changed by Paul 16/6/2007 to use Triple DES for 9+ byte keys
@@ -298,8 +295,8 @@ function des_createKeys(key) {
     temp;
 
   for (var j = 0; j &lt; iterations; j++) { //either 1 or 3 iterations
-    left = (key.charCodeAt(m++) &lt;&lt; 24) | (key.charCodeAt(m++) &lt;&lt; 16) | (key.charCodeAt(m++) &lt;&lt; 8) | key.charCodeAt(m++);
-    right = (key.charCodeAt(m++) &lt;&lt; 24) | (key.charCodeAt(m++) &lt;&lt; 16) | (key.charCodeAt(m++) &lt;&lt; 8) | key.charCodeAt(m++);
+    var left = (key[m++] &lt;&lt; 24) | (key[m++] &lt;&lt; 16) | (key[m++] &lt;&lt; 8) | key[m++];
+    var right = (key[m++] &lt;&lt; 24) | (key[m++] &lt;&lt; 16) | (key[m++] &lt;&lt; 8) | key[m++];
 
     temp = ((left >>> 4) ^ right) &amp; 0x0f0f0f0f;
     right ^= temp;
@@ -330,7 +327,7 @@ function des_createKeys(key) {
     right = temp;
 
     //now go through and perform these shifts on the left and right keys
-    for (i = 0; i &lt; shifts.length; i++) {
+    for (var i = 0; i &lt; shifts.length; i++) {
       //shift the keys either one or two bits to the left
       if (shifts[i]) {
         left = (left &lt;&lt; 2) | (left >>> 26);
@@ -344,7 +341,7 @@ function des_createKeys(key) {
 
       //now apply PC-2, in such a way that E is easier when encrypting or decrypting
       //this conversion will look like PC-2 except only the last 6 bits of each byte are used
-      //rather than 48 consecutive bits and the order of lines will be according to 
+      //rather than 48 consecutive bits and the order of lines will be according to
       //how the S selection functions will be applied: S2, S4, S6, S8, S1, S3, S5, S7
       lefttemp = pc2bytes0[left >>> 28] | pc2bytes1[(left >>> 24) &amp; 0xf] | pc2bytes2[(left >>> 20) &amp; 0xf] | pc2bytes3[(
         left >>> 16) &amp; 0xf] | pc2bytes4[(left >>> 12) &amp; 0xf] | pc2bytes5[(left >>> 8) &amp; 0xf] | pc2bytes6[(left >>> 4) &amp;
@@ -364,31 +361,56 @@ function des_createKeys(key) {
 
 function des_addPadding(message, padding) {
   var padLength = 8 - (message.length % 8);
-  if ((padding == 2) &amp;&amp; (padLength &lt; 8)) { //pad the message with spaces
-    message += "        ".substr(0, padLength);
-  } else if (padding == 1) { //PKCS7 padding
-    message += String.fromCharCode(padLength, padLength, padLength, padLength, padLength, padLength, padLength,
-      padLength).substr(0, padLength);
+
+  var pad;
+  if (padding === 2 &amp;&amp; (padLength &lt; 8)) { //pad the message with spaces
+    pad = " ".charCodeAt(0);
+  } else if (padding === 1) { //PKCS7 padding
+    pad = padLength;
   } else if (!padding &amp;&amp; (padLength &lt; 8)) { //pad the message out with null bytes
-    message += "\0\0\0\0\0\0\0\0".substr(0, padLength);
+    pad = 0;
+  } else if (padLength === 8) {
+    return message;
   }
-  return message;
+  else {
+    throw new Error('des: invalid padding');
+  }
+
+  var paddedMessage = new Uint8Array(message.length + padLength);
+  for(var i = 0; i &lt; message.length; i++) {
+    paddedMessage[i] = message[i];
+  }
+  for(var j = 0; j &lt; padLength; j++) {
+    paddedMessage[message.length + j] = pad;
+  }
+
+  return paddedMessage;
 }
 
 function des_removePadding(message, padding) {
-  if (padding == 2) { // space padded
-    message = message.replace(/ *$/g, "");
-  } else if (padding == 1) { // PKCS7
-    var padCount = message.charCodeAt(message.length - 1);
-    message = message.substr(0, message.length - padCount);
+  var padLength = null;
+  var pad;
+  if (padding === 2) { // space padded
+    pad = " ".charCodeAt(0);
+  } else if (padding === 1) { // PKCS7
+    padLength = message[message.length - 1];
   } else if (!padding) { // null padding
-    message = message.replace(/\0*$/g, "");
+    pad = 0;
   }
-  return message;
+  else {
+    throw new Error('des: invalid padding');
+  }
+
+  if(!padLength) {
+    padLength = 1;
+    while(message[message.length - padLength] === pad) {
+      padLength++;
+    }
+    padLength--;
+  }
+
+  return message.subarray(0, message.length - padLength);
 }
-
-
-var util = require('../../util.js');
 
 // added by Recurity Labs
 
@@ -396,15 +418,15 @@ function Des(key) {
   this.key = [];
 
   for (var i = 0; i &lt; 3; i++) {
-    this.key.push(key.substr(i * 8, 8));
+    this.key.push(new Uint8Array(key.subarray(i * 8, (i * 8) + 8)));
   }
 
   this.encrypt = function(block) {
-    return util.str2bin(des(des_createKeys(this.key[2]),
+    return des(des_createKeys(this.key[2]),
       des(des_createKeys(this.key[1]),
       des(des_createKeys(this.key[0]),
-      util.bin2str(block), true, 0, null, null),
-      false, 0, null, null), true, 0, null, null));
+      block, true, 0, null, null),
+      false, 0, null, null), true, 0, null, null);
   };
 }
 
@@ -419,22 +441,21 @@ function OriginalDes(key) {
 
   this.encrypt = function(block, padding) {
     var keys = des_createKeys(this.key);
-    return util.str2bin(des(keys, util.bin2str(block), true, 0, null, padding));
+    return des(keys, block, true, 0, null, padding);
   };
 
   this.decrypt = function(block, padding) {
     var keys = des_createKeys(this.key);
-    return util.str2bin(des(keys, util.bin2str(block), false, 0, null, padding));
+    return des(keys, block, false, 0, null, padding);
   };
 }
 
-module.exports = {
+export default {
   /** @static */
   des: Des,
   /** @static */
   originalDes: OriginalDes
-};
-</code></pre>
+};</code></pre>
         </article>
     </section>
 
@@ -444,13 +465,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-async_proxy.html">async_proxy</a></li><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_hash_sha.html">crypto/hash/sha</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-hkp_hkp.html">hkp/hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="module-async_proxy-AsyncProxy.html">async_proxy~AsyncProxy</a></li><li><a href="module-cleartext-CleartextMessage.html">cleartext~CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">config/localStorage~LocalStorage</a></li><li><a href="module-hkp_hkp-HKP.html">hkp/hkp~HKP</a></li><li><a href="module-keyring_keyring-Keyring.html">keyring/keyring~Keyring</a></li><li><a href="module-key-Key.html">key~Key</a></li><li><a href="module-key-SubKey.html">key~SubKey</a></li><li><a href="module-key-User.html">key~User</a></li><li><a href="module-message-Message.html">message~Message</a></li><li><a href="module-packet_compressed-Compressed.html">packet/compressed~Compressed</a></li><li><a href="module-packet_literal-Literal.html">packet/literal~Literal</a></li><li><a href="module-packet_marker-Marker.html">packet/marker~Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">packet/one_pass_signature~OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">packet/packetlist~Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">packet/public_key_encrypted_session_key~PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">packet/public_key~PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">packet/public_subkey~PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">packet/secret_key~SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">packet/secret_subkey~SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">packet/signature~Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">packet/sym_encrypted_integrity_protected~SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">packet/sym_encrypted_session_key~SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">packet/symmetrically_encrypted~SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">packet/trust~Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">packet/user_attribute~UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">packet/userid~Userid</a></li><li><a href="module-type_keyid-Keyid.html">type/keyid~Keyid</a></li><li><a href="module-type_mpi-MPI.html">type/mpi~MPI</a></li><li><a href="module-type_s2k-S2K.html">type/s2k~S2K</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_init">_init</a></li><li><a href="global.html#_update">_update</a></li><li><a href="global.html#sha256">sha256</a></li><li><a href="global.html#util">util</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="Int_64.html">Int_64</a></li><li><a href="jsSHA.html">jsSHA</a></li><li><a href="module.html#.exports">exports</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li></ul><h3>Global</h3><ul><li><a href="global.html#b642binb">b642binb</a></li><li><a href="global.html#binb2b64">binb2b64</a></li><li><a href="global.html#binb2bytes">binb2bytes</a></li><li><a href="global.html#binb2hex">binb2hex</a></li><li><a href="global.html#binb2typed">binb2typed</a></li><li><a href="global.html#bytes2binb">bytes2binb</a></li><li><a href="global.html#ch_32">ch_32</a></li><li><a href="global.html#ch_64">ch_64</a></li><li><a href="global.html#clonePackets">clonePackets</a></li><li><a href="global.html#coreSHA1">coreSHA1</a></li><li><a href="global.html#coreSHA2">coreSHA2</a></li><li><a href="global.html#gamma0_32">gamma0_32</a></li><li><a href="global.html#gamma0_64">gamma0_64</a></li><li><a href="global.html#gamma1_32">gamma1_32</a></li><li><a href="global.html#gamma1_64">gamma1_64</a></li><li><a href="global.html#getOutputOpts">getOutputOpts</a></li><li><a href="global.html#hex2binb">hex2binb</a></li><li><a href="global.html#maj_32">maj_32</a></li><li><a href="global.html#maj_64">maj_64</a></li><li><a href="global.html#parity_32">parity_32</a></li><li><a href="global.html#parseClonedPackets">parseClonedPackets</a></li><li><a href="global.html#rotl_32">rotl_32</a></li><li><a href="global.html#rotr_32">rotr_32</a></li><li><a href="global.html#rotr_64">rotr_64</a></li><li><a href="global.html#safeAdd_32_2">safeAdd_32_2</a></li><li><a href="global.html#safeAdd_32_4">safeAdd_32_4</a></li><li><a href="global.html#safeAdd_32_5">safeAdd_32_5</a></li><li><a href="global.html#safeAdd_64_2">safeAdd_64_2</a></li><li><a href="global.html#safeAdd_64_4">safeAdd_64_4</a></li><li><a href="global.html#safeAdd_64_5">safeAdd_64_5</a></li><li><a href="global.html#shr_32">shr_32</a></li><li><a href="global.html#shr_64">shr_64</a></li><li><a href="global.html#sigma0_32">sigma0_32</a></li><li><a href="global.html#sigma0_64">sigma0_64</a></li><li><a href="global.html#sigma1_32">sigma1_32</a></li><li><a href="global.html#sigma1_64">sigma1_64</a></li><li><a href="global.html#str2binb">str2binb</a></li><li><a href="global.html#typed2binb">typed2binb</a></li></ul>
 </nav>
 
-<br clear="both">
+<br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sat Dec 12 2015 12:19:00 GMT+0700 (ICT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sat Feb 13 2016 16:59:35 GMT+0700 (ICT)
 </footer>
 
 <script> prettyPrint(); </script>

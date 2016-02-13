@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>JSDoc: Source: crypto/cfb.js</title>
-    
+
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
     <!--[if lt IE 9]>
@@ -16,16 +16,19 @@
 <body>
 
 <div id="main">
-    
+
     <h1 class="page-title">Source: crypto/cfb.js</h1>
+
     
-    
+
 
 
     
     <section>
         <article>
-            <pre class="prettyprint source"><code>// Modified by Recurity Labs GmbH 
+            <pre class="prettyprint source linenums"><code>// Modified by ProtonTech AG
+
+// Modified by Recurity Labs GmbH
 
 // modified version of http://www.hanewin.net/encrypt/PGdecode.js:
 
@@ -33,10 +36,10 @@
  * Copyright 2005-2006 Herbert Hanewinkel, www.haneWIN.de
  * version 2.0, check www.haneWIN.de for the latest version
 
- * This software is provided as-is, without express or implied warranty.  
+ * This software is provided as-is, without express or implied warranty.
  * Permission to use, copy, modify, distribute or sell this software, with or
  * without fee, for any purpose and by any individual or organization, is hereby
- * granted, provided that the above copyright notice and this paragraph appear 
+ * granted, provided that the above copyright notice and this paragraph appear
  * in all copies. Distribution as a part of an application or binary must
  * include the above copyright notice in the documentation and/or other
  * materials provided with the application or distribution.
@@ -44,32 +47,30 @@
 
 /**
  * @requires crypto/cipher
- * @requires util
  * @module crypto/cfb
  */
 
 'use strict';
 
-var util = require('../util.js'),
-  cipher = require('./cipher');
+import cipher from './cipher';
 
-module.exports = {
+export default {
 
   /**
-   * This function encrypts a given with the specified prefixrandom 
+   * This function encrypts a given with the specified prefixrandom
    * using the specified blockcipher to encrypt a message
-   * @param {String} prefixrandom random bytes of block_size length provided 
-   *  as a string to be used in prefixing the data
+   * @param {Uint8Array} prefixrandom random bytes of block_size length
+   *  to be used in prefixing the data
    * @param {String} cipherfn the algorithm cipher class to encrypt
    *  data in one block_size encryption, {@link module:crypto/cipher}.
-   * @param {String} plaintext data to be encrypted provided as a string
-   * @param {String} key binary string representation of key to be used to encrypt the plaintext.
+   * @param {Uint8Array} plaintext data to be encrypted
+   * @param {Uint8Array} key key to be used to encrypt the plaintext.
    * This will be passed to the cipherfn
    * @param {Boolean} resync a boolean value specifying if a resync of the
-   *  IV should be used or not. The encrypteddatapacket uses the 
-   *  "old" style with a resync. Encryption within an 
+   *  IV should be used or not. The encrypteddatapacket uses the
+   *  "old" style with a resync. Encryption within an
    *  encryptedintegrityprotecteddata packet is not resyncing the IV.
-   * @return {String} a string with the encrypted data
+   * @return {Uint8Array} encrypted data
    */
   encrypt: function(prefixrandom, cipherfn, plaintext, key, resync) {
     cipherfn = new cipher[cipherfn](key);
@@ -78,7 +79,12 @@ module.exports = {
     var FR = new Uint8Array(block_size);
     var FRE = new Uint8Array(block_size);
 
-    prefixrandom = prefixrandom + prefixrandom.charAt(block_size - 2) + prefixrandom.charAt(block_size - 1);
+    var new_prefix = new Uint8Array(prefixrandom.length + 2);
+    new_prefix.set(prefixrandom);
+    new_prefix[prefixrandom.length] = prefixrandom[block_size-2];
+    new_prefix[prefixrandom.length+1] = prefixrandom[block_size-1];
+    prefixrandom = new_prefix;
+
     var ciphertext = new Uint8Array(plaintext.length + 2 + block_size * 2);
     var i, n, begin;
     var offset = resync ? 0 : 2;
@@ -95,7 +101,7 @@ module.exports = {
     //     the plaintext to produce C[1] through C[BS], the first BS octets
     //     of ciphertext.
     for (i = 0; i &lt; block_size; i++) {
-      ciphertext[i] = FRE[i] ^ prefixrandom.charCodeAt(i);
+      ciphertext[i] = FRE[i] ^ prefixrandom[i];
     }
 
     // 4.  FR is loaded with C[1] through C[BS].
@@ -108,8 +114,8 @@ module.exports = {
     // 6.  The left two octets of FRE get xored with the next two octets of
     //     data that were prefixed to the plaintext.  This produces C[BS+1]
     //     and C[BS+2], the next two octets of ciphertext.
-    ciphertext[block_size] = FRE[0] ^ prefixrandom.charCodeAt(block_size);
-    ciphertext[block_size + 1] = FRE[1] ^ prefixrandom.charCodeAt(block_size + 1);
+    ciphertext[block_size] = FRE[0] ^ prefixrandom[block_size];
+    ciphertext[block_size + 1] = FRE[1] ^ prefixrandom[block_size + 1];
 
     if (resync) {
       // 7.  (The resync step) FR is loaded with C[3] through C[BS+2].
@@ -125,7 +131,7 @@ module.exports = {
     //     data.  This produces C[BS+3] through C[BS+(BS+2)], the next BS
     //     octets of ciphertext.
     for (i = 0; i &lt; block_size; i++) {
-      ciphertext[block_size + 2 + i] = FRE[i + offset] ^ plaintext.charCodeAt(i);
+      ciphertext[block_size + 2 + i] = FRE[i + offset] ^ plaintext[i];
     }
     for (n = block_size; n &lt; plaintext.length + offset; n += block_size) {
       // 10. FR is loaded with C[BS+3] to C[BS + (BS+2)] (which is C11-C18 for
@@ -140,22 +146,22 @@ module.exports = {
       // the next BS octets of ciphertext.  These are loaded into FR, and
       // the process is repeated until the plaintext is used up.
       for (i = 0; i &lt; block_size; i++) {
-        ciphertext[block_size + begin + i] = FRE[i] ^ plaintext.charCodeAt(n + i - offset);
+        ciphertext[block_size + begin + i] = FRE[i] ^ plaintext[n + i - offset];
       }
     }
 
     ciphertext = ciphertext.subarray(0, plaintext.length + 2 + block_size);
-    return util.Uint8Array2str(ciphertext);
+    return ciphertext;
   },
 
   /**
    * Decrypts the prefixed data for the Modification Detection Code (MDC) computation
    * @param {String} cipherfn.encrypt Cipher function to use,
    *  @see module:crypto/cipher.
-   * @param {String} key binary string representation of key to be used to check the mdc
+   * @param {Uint8Array} key Uint8Array representation of key to be used to check the mdc
    * This will be passed to the cipherfn
-   * @param {String} ciphertext The encrypted data
-   * @return {String} plaintext Data of D(ciphertext) with blocksize length +2
+   * @param {Uint8Array} ciphertext The encrypted data
+   * @return {Uint8Array} plaintext Data of D(ciphertext) with blocksize length +2
    */
   mdc: function(cipherfn, key, ciphertext) {
     cipherfn = new cipher[cipherfn](key);
@@ -173,29 +179,31 @@ module.exports = {
 
     iblock = cipherfn.encrypt(iblock);
     for (i = 0; i &lt; block_size; i++) {
-      ablock[i] = ciphertext.charCodeAt(i);
+      ablock[i] = ciphertext[i];
       iblock[i] ^= ablock[i];
     }
 
     ablock = cipherfn.encrypt(ablock);
 
-    return util.bin2str(iblock) +
-      String.fromCharCode(ablock[0] ^ ciphertext.charCodeAt(block_size)) +
-      String.fromCharCode(ablock[1] ^ ciphertext.charCodeAt(block_size + 1));
+    var result = new Uint8Array(iblock.length + 2);
+    result.set(iblock);
+    result[iblock.length] = ablock[0] ^ ciphertext[block_size];
+    result[iblock.length + 1] = ablock[1] ^ ciphertext[block_size + 1];
+    return result;
   },
   /**
    * This function decrypts a given plaintext using the specified
    * blockcipher to decrypt a message
    * @param {String} cipherfn the algorithm cipher class to decrypt
    *  data in one block_size encryption, {@link module:crypto/cipher}.
-   * @param {String} key binary string representation of key to be used to decrypt the ciphertext.
+   * @param {Uint8Array} key Uint8Array representation of key to be used to decrypt the ciphertext.
    * This will be passed to the cipherfn
-   * @param {String} ciphertext to be decrypted provided as a string
+   * @param {Uint8Array} ciphertext to be decrypted
    * @param {Boolean} resync a boolean value specifying if a resync of the
-   *  IV should be used or not. The encrypteddatapacket uses the 
-   *  "old" style with a resync. Decryption within an 
+   *  IV should be used or not. The encrypteddatapacket uses the
+   *  "old" style with a resync. Decryption within an
    *  encryptedintegrityprotecteddata packet is not resyncing the IV.
-   * @return {String} a string with the plaintext data
+   * @return {Uint8Array} the plaintext data
    */
 
   decrypt: function(cipherfn, key, ciphertext, resync) {
@@ -204,8 +212,9 @@ module.exports = {
 
     var iblock = new Uint8Array(block_size);
     var ablock = new Uint8Array(block_size);
-    var i, n = '';
-    var text = [];
+
+    var i, j, n;
+    var text = new Uint8Array(ciphertext.length - block_size);
 
     // initialisation vector
     for (i = 0; i &lt; block_size; i++) {
@@ -214,15 +223,15 @@ module.exports = {
 
     iblock = cipherfn.encrypt(iblock);
     for (i = 0; i &lt; block_size; i++) {
-      ablock[i] = ciphertext.charCodeAt(i);
+      ablock[i] = ciphertext[i];
       iblock[i] ^= ablock[i];
     }
 
     ablock = cipherfn.encrypt(ablock);
 
     // test check octets
-    if (iblock[block_size - 2] != (ablock[0] ^ ciphertext.charCodeAt(block_size)) ||
-        iblock[block_size - 1] != (ablock[1] ^ ciphertext.charCodeAt(block_size + 1))) {
+    if (iblock[block_size - 2] !== (ablock[0] ^ ciphertext[block_size]) ||
+        iblock[block_size - 1] !== (ablock[1] ^ ciphertext[block_size + 1])) {
       throw new Error('CFB decrypt: invalid key');
     }
 
@@ -233,35 +242,42 @@ module.exports = {
 
      */
 
+    j = 0;
     if (resync) {
       for (i = 0; i &lt; block_size; i++) {
-        iblock[i] = ciphertext.charCodeAt(i + 2);
+        iblock[i] = ciphertext[i + 2];
       }
       for (n = block_size + 2; n &lt; ciphertext.length; n += block_size) {
         ablock = cipherfn.encrypt(iblock);
 
         for (i = 0; i &lt; block_size &amp;&amp; i + n &lt; ciphertext.length; i++) {
-          iblock[i] = ciphertext.charCodeAt(n + i);
-          text.push(String.fromCharCode(ablock[i] ^ iblock[i]));
+          iblock[i] = ciphertext[n + i];
+          if(j &lt; text.length) {
+            text[j] = ablock[i] ^ iblock[i];
+            j++;
+          }
         }
       }
     } else {
       for (i = 0; i &lt; block_size; i++) {
-        iblock[i] = ciphertext.charCodeAt(i);
+        iblock[i] = ciphertext[i];
       }
       for (n = block_size; n &lt; ciphertext.length; n += block_size) {
         ablock = cipherfn.encrypt(iblock);
         for (i = 0; i &lt; block_size &amp;&amp; i + n &lt; ciphertext.length; i++) {
-          iblock[i] = ciphertext.charCodeAt(n + i);
-          text.push(String.fromCharCode(ablock[i] ^ iblock[i]));
+          iblock[i] = ciphertext[n + i];
+          if(j &lt; text.length) {
+            text[j] = ablock[i] ^ iblock[i];
+            j++;
+          }
         }
       }
     }
-    if (!resync)
-    {
-      text.splice(0, 2);
-    }
-    text.splice(ciphertext.length - block_size - 2);
+
+    n = resync ? 0 : 2;
+
+    text = text.subarray(n, ciphertext.length - block_size - 2 + n);
+
     return text;
   },
 
@@ -269,21 +285,29 @@ module.exports = {
     cipherfn = new cipher[cipherfn](key);
     var block_size = cipherfn.blockSize;
 
-    var blocki = '';
-    var blockc = '';
+    var blocki = new Uint8Array(block_size);
+    var blockc = new Uint8Array(block_size);
     var pos = 0;
-    var cyphertext = '';
-    var tempBlock = '';
-    blockc = iv.substring(0, block_size);
-    while (plaintext.length > block_size * pos) {
-      var encblock = cipherfn.encrypt(util.str2bin(blockc));
-      blocki = plaintext.substring((pos * block_size), (pos * block_size) + block_size);
-      for (var i = 0; i &lt; blocki.length; i++) {
-        tempBlock += String.fromCharCode(blocki.charCodeAt(i) ^ encblock[i]);
+    var cyphertext = new Uint8Array(plaintext.length);
+    var i, j = 0;
+
+    if (iv === null) {
+      for (i = 0; i &lt; block_size; i++) {
+        blockc[i] = 0;
       }
-      blockc = tempBlock;
-      tempBlock = '';
-      cyphertext += blockc;
+    }
+    else {
+      for (i = 0; i &lt; block_size; i++) {
+        blockc[i] = iv[i];
+      }
+    }
+    while (plaintext.length > block_size * pos) {
+      var encblock = cipherfn.encrypt(blockc);
+      blocki = plaintext.subarray((pos * block_size), (pos * block_size) + block_size);
+      for (i = 0; i &lt; blocki.length; i++) {
+        blockc[i] = blocki[i] ^ encblock[i];
+        cyphertext[j++] = blockc[i];
+      }
       pos++;
     }
     return cyphertext;
@@ -293,22 +317,26 @@ module.exports = {
     cipherfn = new cipher[cipherfn](key);
     var block_size = cipherfn.blockSize;
 
-    var blockp = '';
+    var blockp;
     var pos = 0;
-    var plaintext = '';
+    var plaintext = new Uint8Array(ciphertext.length);
     var offset = 0;
-    var i;
-    if (iv === null)
+    var i, j = 0;
+
+    if (iv === null) {
+      blockp = new Uint8Array(block_size);
       for (i = 0; i &lt; block_size; i++) {
-        blockp += String.fromCharCode(0);
+        blockp[i] = 0;
       }
-    else
-      blockp = iv.substring(0, block_size);
+    }
+    else {
+      blockp = iv.subarray(0, block_size);
+    }
     while (ciphertext.length > (block_size * pos)) {
-      var decblock = cipherfn.encrypt(util.str2bin(blockp));
-      blockp = ciphertext.substring((pos * (block_size)) + offset, (pos * (block_size)) + (block_size) + offset);
+      var decblock = cipherfn.encrypt(blockp);
+      blockp = ciphertext.subarray((pos * (block_size)) + offset, (pos * (block_size)) + (block_size) + offset);
       for (i = 0; i &lt; blockp.length; i++) {
-        plaintext += String.fromCharCode(blockp.charCodeAt(i) ^ decblock[i]);
+        plaintext[j++] = blockp[i] ^ decblock[i];
       }
       pos++;
     }
@@ -326,13 +354,13 @@ module.exports = {
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-async_proxy.html">async_proxy</a></li><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_hash_sha.html">crypto/hash/sha</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-hkp_hkp.html">hkp/hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="module-async_proxy-AsyncProxy.html">async_proxy~AsyncProxy</a></li><li><a href="module-cleartext-CleartextMessage.html">cleartext~CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">config/localStorage~LocalStorage</a></li><li><a href="module-hkp_hkp-HKP.html">hkp/hkp~HKP</a></li><li><a href="module-keyring_keyring-Keyring.html">keyring/keyring~Keyring</a></li><li><a href="module-key-Key.html">key~Key</a></li><li><a href="module-key-SubKey.html">key~SubKey</a></li><li><a href="module-key-User.html">key~User</a></li><li><a href="module-message-Message.html">message~Message</a></li><li><a href="module-packet_compressed-Compressed.html">packet/compressed~Compressed</a></li><li><a href="module-packet_literal-Literal.html">packet/literal~Literal</a></li><li><a href="module-packet_marker-Marker.html">packet/marker~Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">packet/one_pass_signature~OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">packet/packetlist~Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">packet/public_key_encrypted_session_key~PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">packet/public_key~PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">packet/public_subkey~PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">packet/secret_key~SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">packet/secret_subkey~SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">packet/signature~Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">packet/sym_encrypted_integrity_protected~SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">packet/sym_encrypted_session_key~SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">packet/symmetrically_encrypted~SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">packet/trust~Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">packet/user_attribute~UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">packet/userid~Userid</a></li><li><a href="module-type_keyid-Keyid.html">type/keyid~Keyid</a></li><li><a href="module-type_mpi-MPI.html">type/mpi~MPI</a></li><li><a href="module-type_s2k-S2K.html">type/s2k~S2K</a></li></ul><h3>Global</h3><ul><li><a href="global.html#_init">_init</a></li><li><a href="global.html#_update">_update</a></li><li><a href="global.html#sha256">sha256</a></li><li><a href="global.html#util">util</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="Int_64.html">Int_64</a></li><li><a href="jsSHA.html">jsSHA</a></li><li><a href="module.html#.exports">exports</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li></ul><h3>Global</h3><ul><li><a href="global.html#b642binb">b642binb</a></li><li><a href="global.html#binb2b64">binb2b64</a></li><li><a href="global.html#binb2bytes">binb2bytes</a></li><li><a href="global.html#binb2hex">binb2hex</a></li><li><a href="global.html#binb2typed">binb2typed</a></li><li><a href="global.html#bytes2binb">bytes2binb</a></li><li><a href="global.html#ch_32">ch_32</a></li><li><a href="global.html#ch_64">ch_64</a></li><li><a href="global.html#clonePackets">clonePackets</a></li><li><a href="global.html#coreSHA1">coreSHA1</a></li><li><a href="global.html#coreSHA2">coreSHA2</a></li><li><a href="global.html#gamma0_32">gamma0_32</a></li><li><a href="global.html#gamma0_64">gamma0_64</a></li><li><a href="global.html#gamma1_32">gamma1_32</a></li><li><a href="global.html#gamma1_64">gamma1_64</a></li><li><a href="global.html#getOutputOpts">getOutputOpts</a></li><li><a href="global.html#hex2binb">hex2binb</a></li><li><a href="global.html#maj_32">maj_32</a></li><li><a href="global.html#maj_64">maj_64</a></li><li><a href="global.html#parity_32">parity_32</a></li><li><a href="global.html#parseClonedPackets">parseClonedPackets</a></li><li><a href="global.html#rotl_32">rotl_32</a></li><li><a href="global.html#rotr_32">rotr_32</a></li><li><a href="global.html#rotr_64">rotr_64</a></li><li><a href="global.html#safeAdd_32_2">safeAdd_32_2</a></li><li><a href="global.html#safeAdd_32_4">safeAdd_32_4</a></li><li><a href="global.html#safeAdd_32_5">safeAdd_32_5</a></li><li><a href="global.html#safeAdd_64_2">safeAdd_64_2</a></li><li><a href="global.html#safeAdd_64_4">safeAdd_64_4</a></li><li><a href="global.html#safeAdd_64_5">safeAdd_64_5</a></li><li><a href="global.html#shr_32">shr_32</a></li><li><a href="global.html#shr_64">shr_64</a></li><li><a href="global.html#sigma0_32">sigma0_32</a></li><li><a href="global.html#sigma0_64">sigma0_64</a></li><li><a href="global.html#sigma1_32">sigma1_32</a></li><li><a href="global.html#sigma1_64">sigma1_64</a></li><li><a href="global.html#str2binb">str2binb</a></li><li><a href="global.html#typed2binb">typed2binb</a></li></ul>
 </nav>
 
-<br clear="both">
+<br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sat Dec 12 2015 12:19:00 GMT+0700 (ICT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sat Feb 13 2016 16:59:35 GMT+0700 (ICT)
 </footer>
 
 <script> prettyPrint(); </script>
