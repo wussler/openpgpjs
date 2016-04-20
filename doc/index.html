@@ -43,10 +43,10 @@
 
 
     <section>
-        <article><h1>OpenPGP.js <a href="https://travis-ci.org/openpgpjs/openpgpjs"><img src="https://travis-ci.org/openpgpjs/openpgpjs.svg?branch=master" alt="Build Status"></a> <a href="https://codeclimate.com/github/openpgpjs/openpgpjs/coverage"><img src="https://codeclimate.com/github/openpgpjs/openpgpjs/badges/coverage.svg" alt="Test Coverage"></a> <a href="https://codeclimate.com/github/openpgpjs/openpgpjs"><img src="https://codeclimate.com/github/openpgpjs/openpgpjs/badges/gpa.svg" alt="Code Climate"></a></h1><p><a href="http://openpgpjs.org/">OpenPGP.js</a> is a Javascript implementation of the OpenPGP protocol. This is defined in <a href="http://tools.ietf.org/html/rfc4880">RFC 4880</a>.</p>
+        <article><h1>OpenPGP.js <a href="https://travis-ci.org/openpgpjs/openpgpjs"><img src="https://travis-ci.org/openpgpjs/openpgpjs.svg?branch=master" alt="Build Status"></a></h1><p><a href="http://openpgpjs.org/">OpenPGP.js</a> is a Javascript implementation of the OpenPGP protocol. This is defined in <a href="http://tools.ietf.org/html/rfc4880">RFC 4880</a>.</p>
 <p><a href="https://saucelabs.com/u/openpgpjs"><img src="https://saucelabs.com/browser-matrix/openpgpjs.svg" alt="Saucelabs Test Status"></a></p>
 <h3>Platform support</h3><ul>
-<li><p>OpenPGP.js v2.x is written in ES6 but is transpiled to ES5 using <a href="https://babeljs.io/">Babel</a> to run in any environments. We support node.js v0.8+ and browsers that implement <a href="http://caniuse.com/#feat=getrandomvalues">window.crypto.getRandomValues</a>.</p>
+<li><p>OpenPGP.js v2.x is written in ES6 but is transpiled to ES5 using <a href="https://babeljs.io/">Babel</a> to run in most environments. We support node.js v0.8+ and browsers that implement <a href="http://caniuse.com/#feat=getrandomvalues">window.crypto.getRandomValues</a>.</p>
 </li>
 <li><p>The api uses ES6 promises which are available in <a href="http://caniuse.com/#feat=promises">most modern browsers</a>. If you need to support browsers that do not support Promises, fear not! There is a <a href="https://github.com/jakearchibald/es6-promise">polyfill</a>, which is included in our build. So no action required on your part!</p>
 </li>
@@ -56,31 +56,35 @@
 <h3>Performance</h3><ul>
 <li><p>Version 2.x of the library has been built from the ground up with Uint8Arrays. This allows for much better performance and memory usage than strings.</p>
 </li>
-<li><p>If the user's browser supports <a href="http://caniuse.com/#feat=cryptography">native WebCrypto</a> via the <code>window.crypto.subtle</code> api, this will be used. Under node.js the native <a href="https://nodejs.org/api/crypto.html#crypto_crypto">crypto module</a> is used. This can be deactivated by setting <code>openpgp.config.useNative = false</code>.</p>
+<li><p>If the user's browser supports <a href="http://caniuse.com/#feat=cryptography">native WebCrypto</a> via the <code>window.crypto.subtle</code> api, this will be used. Under node.js the native <a href="https://nodejs.org/api/crypto.html#crypto_crypto">crypto module</a> is used. This can be deactivated by setting <code>openpgp.config.use_native = false</code>.</p>
 </li>
-<li><p>For environments that don't provide native crypto, the library falls back to <a href="http://caniuse.com/#feat=asmjs">asm.js</a> implementations of AES-CFB, SHA-1, and SHA-256. We use <a href="https://github.com/srijs/rusha">Rusha</a> and <a href="https://www.npmjs.com/package/asmcrypto-lite">asmCrypto Lite</a> (a minimal subset of asmCrypto.js built specifically for OpenPGP.js).</p>
+<li><p>The library implements the <a href="https://tools.ietf.org/html/draft-ford-openpgp-format-00">IETF proposal</a> for authenticated encryption <a href="https://github.com/openpgpjs/openpgpjs/pull/430">using native AES-GCM</a>. This makes symmetric encryption about 30x faster on supported platforms. Since the specification has not been finalized and other OpenPGP implementations haven't adopted it yet, the feature is currently behind a flag. You can activate it by setting <code>openpgp.config.aead_protect = true</code>.</p>
+</li>
+<li><p>For environments that don't provide native crypto, the library falls back to <a href="http://caniuse.com/#feat=asmjs">asm.js</a> implementations of AES, SHA-1, and SHA-256. We use <a href="https://github.com/srijs/rusha">Rusha</a> and <a href="https://github.com/openpgpjs/asmcrypto-lite">asmCrypto Lite</a> (a minimal subset of asmCrypto.js built specifically for OpenPGP.js).</p>
 </li>
 </ul>
 <h3>Getting started</h3><h4>Npm</h4><pre class="prettyprint source"><code>npm install --save openpgp</code></pre><h4>Bower</h4><pre class="prettyprint source"><code>bower install --save openpgp</code></pre><p>Or just fetch a minified build under <a href="https://github.com/openpgpjs/openpgpjs/tree/master/dist">dist</a>.</p>
-<h3>Examples</h3><p>Here are some examples of how to use the v2.x api. If you're upgrading from v1.x it might help to check out the <a href="https://github.com/openpgpjs/openpgpjs#documentation">documentation</a>.</p>
-<h4>Set up</h4><pre class="prettyprint source lang-js"><code>var openpgp = require('openpgp'); // use as ES6, CommonJS, AMD module or via window.openpgp
+<h3>Examples</h3><p>Here are some examples of how to use the v2.x api. For more elaborate examples and working code, please check out the <a href="https://github.com/openpgpjs/openpgpjs/blob/master/test/general/openpgp.js">public api unit tests</a>. If you're upgrading from v1.x it might help to check out the <a href="https://github.com/openpgpjs/openpgpjs#documentation">documentation</a>.</p>
+<h4>Set up</h4><pre class="prettyprint source lang-js"><code>var openpgp = require('openpgp'); // use as CommonJS, AMD, ES6 module or via window.openpgp
 
-openpgp.initWorker({ path:'openpgp.worker.js' }) // set the relative web worker path</code></pre><h4>Encrypt and decrypt <em>String</em> data with a password</h4><pre class="prettyprint source lang-js"><code>var options, encrypted;
+openpgp.initWorker({ path:'openpgp.worker.js' }) // set the relative web worker path
+
+openpgp.config.aead_protect = true // activate fast AES-GCM mode (experimental)</code></pre><h4>Encrypt and decrypt <em>String</em> data with a password</h4><pre class="prettyprint source lang-js"><code>var options, encrypted;
 
 options = {
     data: 'Hello, World!',      // input as String
     passwords: ['secret stuff'] // multiple passwords possible
 };
 
-openpgp.encrypt(options).then(function(armored) {
-    encrypted = armored; // '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'
+openpgp.encrypt(options).then(function(ciphertext) {
+    encrypted = ciphertext.data; // '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'
 });</code></pre><pre class="prettyprint source lang-js"><code>options = {
     message: openpgp.message.readArmored(encrypted), // parse armored message
     password: 'secret stuff'                         // decrypt with password
 };
 
 openpgp.decrypt(options).then(function(plaintext) {
-    // return 'Hello, World!'
+    return plaintext.data; // 'Hello, World!'
 });</code></pre><h4>Encrypt and decrypt <em>Uint8Array</em> data with PGP keys</h4><pre class="prettyprint source lang-js"><code>var options, encrypted;
 
 var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----';
@@ -93,8 +97,8 @@ options = {
     armor: false                                        // don't ASCII armor
 };
 
-openpgp.encrypt(options).then(function(message) {
-    encrypted = message.packets.write(); // get raw encrypted packets as Uint8Array
+openpgp.encrypt(options).then(function(ciphertext) {
+    encrypted = ciphertext.message.packets.write(); // get raw encrypted packets as Uint8Array
 });</code></pre><pre class="prettyprint source lang-js"><code>options = {
     message: openpgp.message.read(encrypted),             // parse encrypted bytes
     publicKeys: openpgp.key.readArmored(pubkey).keys,     // for verification (optional)
@@ -103,7 +107,7 @@ openpgp.encrypt(options).then(function(message) {
 };
 
 openpgp.decrypt(options).then(function(plaintext) {
-    // return Uint8Array([0x01, 0x01, 0x01])
+    return plaintext.data // Uint8Array([0x01, 0x01, 0x01])
 });</code></pre><h4>Generate new key pair</h4><pre class="prettyprint source lang-js"><code>var options = {
     userIds: [{ name:'Jon Smith', email:'jon@example.com' }], // multiple user IDs
     numBits: 4096,                                            // RSA key size
@@ -111,8 +115,8 @@ openpgp.decrypt(options).then(function(plaintext) {
 };
 
 openpgp.generateKey(options).then(function(key) {
-    var privkey = key.privateKeyArmored;
-    var pubkey = key.publicKeyArmored;
+    var privkey = key.privateKeyArmored; // '-----BEGIN PGP PRIVATE KEY BLOCK ... '
+    var pubkey = key.publicKeyArmored;   // '-----BEGIN PGP PUBLIC KEY BLOCK ... '
 });</code></pre><h4>Lookup public key on HKP server</h4><pre class="prettyprint source lang-js"><code>var hkp = new openpgp.HKP('https://pgp.mit.edu');
 
 var options = {
@@ -129,9 +133,8 @@ hkp.upload(pubkey).then(function() { ... });</code></pre><h3>Documentation</h3><
 <h3>Security Audit</h3><p>To date the OpenPGP.js code base has undergone two complete security audits from <a href="https://cure53.de">Cure53</a>. The first audit's report has been published <a href="https://github.com/openpgpjs/openpgpjs/wiki/Cure53-security-audit">here</a>.</p>
 <h3>Security recommendations</h3><p>It should be noted that js crypto apps deployed via regular web hosting (a.k.a. <a href="https://www.schneier.com/blog/archives/2012/08/cryptocat.html"><strong>host-based security</strong></a>) provide users with less security than installable apps with auditable static versions. Installable apps can be deployed as a <a href="https://developer.mozilla.org/en-US/Marketplace/Options/Packaged_apps">Firefox</a> or <a href="https://developer.chrome.com/apps/about_apps.html">Chrome</a> packaged app. These apps are basically signed zip files and their runtimes typically enforce a strict <a href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/">Content Security Policy (CSP)</a> to protect users against <a href="https://en.wikipedia.org/wiki/Cross-site_scripting">XSS</a>. This <a href="https://tankredhase.com/2014/04/13/heartbleed-and-javascript-crypto/">blogpost</a> explains the trust model of the web quite well.</p>
 <p>It is also recommended to set a strong passphrase that protects the user's private key on disk.</p>
-<h3>Development</h3><p>To create your own build of the library, just run the following command after cloning the git repo. This will download all dependencies, run the tests and create a minifed bundle under <code>dist/openpgp.min.js</code> to use in your project:</p>
-<pre class="prettyprint source"><code>npm install && npm test</code></pre><h3>Mailing List</h3><p>You can <a href="http://list.openpgpjs.org/">sign up</a> for our mailing list and ask for help there.  We've recently worked on getting our <a href="http://www.mail-archive.com/list@openpgpjs.org/">archive up and running</a>.</p>
-<h3>How do I get involved?</h3><p>You want to help, great! Go ahead and fork our repo, make your changes and send us a pull request.</p>
+<h3>Development</h3><p>To create your own build of the library, just run the following command after cloning the git repo. This will download all dependencies, run the tests and create a minified bundle under <code>dist/openpgp.min.js</code> to use in your project:</p>
+<pre class="prettyprint source"><code>npm install && npm test</code></pre><h3>How do I get involved?</h3><p>You want to help, great! Go ahead and fork our repo, make your changes and send us a pull request.</p>
 <h3>License</h3><p>GNU Lesser General Public License (3.0 or any later version). Please take a look at the <a href="LICENSE">LICENSE</a> file for more information.</p>
 <h3>Resources</h3><p>Below is a collection of resources, many of these were projects that were in someway a precursor to the current OpenPGP.js project. If you'd like to add your link here, please do so in a pull request or email to the list.</p>
 <ul>
@@ -147,6 +150,98 @@ hkp.upload(pubkey).then(function() { ... });</code></pre><h3>Documentation</h3><
     </section>
 
 
+
+
+
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>crypto/gcm.js</h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+            <div class="description">This module wraps native AES-GCM en/decryption for both
+the WebCrypto api as well as node.js' crypto api.</div>
+        
+
+        
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_gcm.js.html">crypto/gcm.js</a>, <a href="crypto_gcm.js.html#line18">line 18</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+
+    
+
+    
+
+    
+</article>
+
+</section>
 
 
 
@@ -433,13 +528,13 @@ the structured cloning algorithm.</div>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="Int_64.html">Int_64</a></li><li><a href="jsSHA.html">jsSHA</a></li><li><a href="module.html#.exports">exports</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li></ul><h3>Global</h3><ul><li><a href="global.html#b642binb">b642binb</a></li><li><a href="global.html#binb2b64">binb2b64</a></li><li><a href="global.html#binb2bytes">binb2bytes</a></li><li><a href="global.html#binb2hex">binb2hex</a></li><li><a href="global.html#binb2typed">binb2typed</a></li><li><a href="global.html#bytes2binb">bytes2binb</a></li><li><a href="global.html#ch_32">ch_32</a></li><li><a href="global.html#ch_64">ch_64</a></li><li><a href="global.html#clonePackets">clonePackets</a></li><li><a href="global.html#coreSHA1">coreSHA1</a></li><li><a href="global.html#coreSHA2">coreSHA2</a></li><li><a href="global.html#gamma0_32">gamma0_32</a></li><li><a href="global.html#gamma0_64">gamma0_64</a></li><li><a href="global.html#gamma1_32">gamma1_32</a></li><li><a href="global.html#gamma1_64">gamma1_64</a></li><li><a href="global.html#getOutputOpts">getOutputOpts</a></li><li><a href="global.html#hex2binb">hex2binb</a></li><li><a href="global.html#maj_32">maj_32</a></li><li><a href="global.html#maj_64">maj_64</a></li><li><a href="global.html#parity_32">parity_32</a></li><li><a href="global.html#parseClonedPackets">parseClonedPackets</a></li><li><a href="global.html#rotl_32">rotl_32</a></li><li><a href="global.html#rotr_32">rotr_32</a></li><li><a href="global.html#rotr_64">rotr_64</a></li><li><a href="global.html#safeAdd_32_2">safeAdd_32_2</a></li><li><a href="global.html#safeAdd_32_4">safeAdd_32_4</a></li><li><a href="global.html#safeAdd_32_5">safeAdd_32_5</a></li><li><a href="global.html#safeAdd_64_2">safeAdd_64_2</a></li><li><a href="global.html#safeAdd_64_4">safeAdd_64_4</a></li><li><a href="global.html#safeAdd_64_5">safeAdd_64_5</a></li><li><a href="global.html#shr_32">shr_32</a></li><li><a href="global.html#shr_64">shr_64</a></li><li><a href="global.html#sigma0_32">sigma0_32</a></li><li><a href="global.html#sigma0_64">sigma0_64</a></li><li><a href="global.html#sigma1_32">sigma1_32</a></li><li><a href="global.html#sigma1_64">sigma1_64</a></li><li><a href="global.html#str2binb">str2binb</a></li><li><a href="global.html#typed2binb">typed2binb</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="Int_64.html">Int_64</a></li><li><a href="jsSHA.html">jsSHA</a></li><li><a href="module.html#.exports">exports</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li></ul><h3>Global</h3><ul><li><a href="global.html#b642binb">b642binb</a></li><li><a href="global.html#binb2b64">binb2b64</a></li><li><a href="global.html#binb2bytes">binb2bytes</a></li><li><a href="global.html#binb2hex">binb2hex</a></li><li><a href="global.html#binb2typed">binb2typed</a></li><li><a href="global.html#bytes2binb">bytes2binb</a></li><li><a href="global.html#ch_32">ch_32</a></li><li><a href="global.html#ch_64">ch_64</a></li><li><a href="global.html#clonePackets">clonePackets</a></li><li><a href="global.html#coreSHA1">coreSHA1</a></li><li><a href="global.html#coreSHA2">coreSHA2</a></li><li><a href="global.html#decrypt">decrypt</a></li><li><a href="global.html#encrypt">encrypt</a></li><li><a href="global.html#gamma0_32">gamma0_32</a></li><li><a href="global.html#gamma0_64">gamma0_64</a></li><li><a href="global.html#gamma1_32">gamma1_32</a></li><li><a href="global.html#gamma1_64">gamma1_64</a></li><li><a href="global.html#getOutputOpts">getOutputOpts</a></li><li><a href="global.html#hex2binb">hex2binb</a></li><li><a href="global.html#maj_32">maj_32</a></li><li><a href="global.html#maj_64">maj_64</a></li><li><a href="global.html#parity_32">parity_32</a></li><li><a href="global.html#parseClonedPackets">parseClonedPackets</a></li><li><a href="global.html#rotl_32">rotl_32</a></li><li><a href="global.html#rotr_32">rotr_32</a></li><li><a href="global.html#rotr_64">rotr_64</a></li><li><a href="global.html#safeAdd_32_2">safeAdd_32_2</a></li><li><a href="global.html#safeAdd_32_4">safeAdd_32_4</a></li><li><a href="global.html#safeAdd_32_5">safeAdd_32_5</a></li><li><a href="global.html#safeAdd_64_2">safeAdd_64_2</a></li><li><a href="global.html#safeAdd_64_4">safeAdd_64_4</a></li><li><a href="global.html#safeAdd_64_5">safeAdd_64_5</a></li><li><a href="global.html#shr_32">shr_32</a></li><li><a href="global.html#shr_64">shr_64</a></li><li><a href="global.html#sigma0_32">sigma0_32</a></li><li><a href="global.html#sigma0_64">sigma0_64</a></li><li><a href="global.html#sigma1_32">sigma1_32</a></li><li><a href="global.html#sigma1_64">sigma1_64</a></li><li><a href="global.html#str2binb">str2binb</a></li><li><a href="global.html#typed2binb">typed2binb</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sat Feb 13 2016 16:59:35 GMT+0700 (ICT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Wed Apr 20 2016 21:57:08 GMT+0200 (CEST)
 </footer>
 
 <script> prettyPrint(); </script>
