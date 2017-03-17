@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: crypto/hash/index.js</title>
+    <title>JSDoc: Source: worker/worker.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: crypto/hash/index.js</h1>
+    <h1 class="page-title">Source: worker/worker.js</h1>
 
     
 
@@ -26,147 +26,108 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
- * @requires crypto/hash/sha
- * @requires crypto/hash/md5
- * @requires crypto/hash/ripe-md
- * @requires util
- * @module crypto/hash
+            <pre class="prettyprint source linenums"><code>// GPG4Browsers - An OpenPGP implementation in javascript
+// Copyright (C) 2011 Recurity Labs GmbH
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+/* globals self: true */
+
+self.window = {}; // to make UMD bundles work
+
+importScripts('openpgp.js');
+var openpgp = window.openpgp;
+
+var MIN_SIZE_RANDOM_BUFFER = 40000;
+var MAX_SIZE_RANDOM_BUFFER = 60000;
+
+openpgp.crypto.random.randomBuffer.init(MAX_SIZE_RANDOM_BUFFER);
+
+/**
+ * Handle messages from the main window.
+ * @param  {Object} event   Contains event type and data
  */
+self.onmessage = function(event) {
+  var msg = event.data || {};
 
-'use strict';
+  switch (msg.event) {
+    case 'configure':
+      configure(msg.config);
+      break;
 
-import sha from './sha.js';
-import asmCrypto from 'asmcrypto-lite';
-import Rusha from 'rusha';
-import md5 from './md5.js';
-import ripemd from './ripe-md.js';
-import util from '../../util.js';
+    case 'seed-random':
+      seedRandom(msg.buf);
+      break;
 
-const rusha = new Rusha(),
-  nodeCrypto = util.getNodeCrypto(),
-  Buffer = util.getNodeBuffer();
-
-function node_hash(type) {
-  return function (data) {
-    var shasum = nodeCrypto.createHash(type);
-    shasum.update(new Buffer(data));
-    return new Uint8Array(shasum.digest());
-  };
-}
-
-var hash_fns;
-if(nodeCrypto) { // Use Node native crypto for all hash functions
-
-  hash_fns = {
-    md5: node_hash('md5'),
-    sha1: node_hash('sha1'),
-    sha224: node_hash('sha224'),
-    sha256: node_hash('sha256'),
-    sha384: node_hash('sha384'),
-    sha512: node_hash('sha512'),
-    ripemd: node_hash('ripemd160')
-  };
-
-} else { // Use JS fallbacks
-
-  hash_fns = {
-    /** @see module:crypto/hash/md5 */
-    md5: md5,
-    /** @see module:rusha */
-    sha1: function(data) {
-      return util.str2Uint8Array(util.hex2bin(rusha.digest(data)));
-    },
-    /** @see module:crypto/hash/sha.sha224 */
-    sha224: sha.sha224,
-    /** @see module:asmcrypto */
-    sha256: asmCrypto.SHA256.bytes,
-    /** @see module:crypto/hash/sha.sha384 */
-    sha384: sha.sha384,
-    /** @see module:crypto/hash/sha.sha512 */
-    sha512: sha.sha512,
-    /** @see module:crypto/hash/ripe-md */
-    ripemd: ripemd
-  };
-}
-
-export default {
-
-  md5: hash_fns.md5,
-  sha1: hash_fns.sha1,
-  sha224: hash_fns.sha224,
-  sha256: hash_fns.sha256,
-  sha384: hash_fns.sha384,
-  sha512: hash_fns.sha512,
-  ripemd: hash_fns.ripemd,
-
-  /**
-   * Create a hash on the specified data using the specified algorithm
-   * @param {module:enums.hash} algo Hash algorithm type (see {@link http://tools.ietf.org/html/rfc4880#section-9.4|RFC 4880 9.4})
-   * @param {Uint8Array} data Data to be hashed
-   * @return {Uint8Array} hash value
-   */
-  digest: function(algo, data) {
-    switch (algo) {
-      case 1:
-        // - MD5 [HAC]
-        return this.md5(data);
-      case 2:
-        // - SHA-1 [FIPS180]
-        return this.sha1(data);
-      case 3:
-        // - RIPE-MD/160 [HAC]
-        return this.ripemd(data);
-      case 8:
-        // - SHA256 [FIPS180]
-        return this.sha256(data);
-      case 9:
-        // - SHA384 [FIPS180]
-        return this.sha384(data);
-      case 10:
-        // - SHA512 [FIPS180]
-        return this.sha512(data);
-      case 11:
-        // - SHA224 [FIPS180]
-        return this.sha224(data);
-      default:
-        throw new Error('Invalid hash function.');
-    }
-  },
-
-  /**
-   * Returns the hash size in bytes of the specified hash algorithm type
-   * @param {module:enums.hash} algo Hash algorithm type (See {@link http://tools.ietf.org/html/rfc4880#section-9.4|RFC 4880 9.4})
-   * @return {Integer} Size in bytes of the resulting hash
-   */
-  getHashByteLength: function(algo) {
-    switch (algo) {
-      case 1:
-        // - MD5 [HAC]
-        return 16;
-      case 2:
-        // - SHA-1 [FIPS180]
-      case 3:
-        // - RIPE-MD/160 [HAC]
-        return 20;
-      case 8:
-        // - SHA256 [FIPS180]
-        return 32;
-      case 9:
-        // - SHA384 [FIPS180]
-        return 48;
-      case 10:
-        // - SHA512 [FIPS180]
-        return 64;
-      case 11:
-        // - SHA224 [FIPS180]
-        return 28;
-      default:
-        throw new Error('Invalid hash algorithm.');
-    }
+    default:
+      delegate(msg.id, msg.event, msg.options || {});
   }
 };
-</code></pre>
+
+/**
+ * Set config from main context to worker context.
+ * @param  {Object} config   The openpgp configuration
+ */
+function configure(config) {
+  for (var i in config) {
+    openpgp.config[i] = config[i];
+  }
+}
+
+/**
+ * Seed the library with entropy gathered window.crypto.getRandomValues
+ * as this api is only avalible in the main window.
+ * @param  {ArrayBuffer} buffer   Some random bytes
+ */
+function seedRandom(buffer) {
+  if (!(buffer instanceof Uint8Array)) {
+    buffer = new Uint8Array(buffer);
+  }
+  openpgp.crypto.random.randomBuffer.set(buffer);
+}
+
+/**
+ * Generic proxy function that handles all commands from the public api.
+ * @param  {String} method    The public api function to be delegated to the worker thread
+ * @param  {Object} options   The api function's options
+ */
+function delegate(id, method, options) {
+  if (typeof openpgp[method] !== 'function') {
+    response({ id:id, event:'method-return', err:'Unknown Worker Event' });
+    return;
+  }
+  // parse cloned packets
+  options = openpgp.packet.clone.parseClonedPackets(options, method);
+  openpgp[method](options).then(function(data) {
+    // clone packets (for web worker structured cloning algorithm)
+    response({ id:id, event:'method-return', data:openpgp.packet.clone.clonePackets(data) });
+  }).catch(function(e) {
+    response({ id:id, event:'method-return', err:e.message });
+  });
+}
+
+/**
+ * Respond to the main window.
+ * @param  {Object} event  Contains event type and data
+ */
+function response(event) {
+  if (openpgp.crypto.random.randomBuffer.size &lt; MIN_SIZE_RANDOM_BUFFER) {
+    self.postMessage({event: 'request-seed'});
+  }
+  self.postMessage(event, openpgp.util.getTransferables.call(openpgp.util, event.data));
+}</code></pre>
         </article>
     </section>
 
