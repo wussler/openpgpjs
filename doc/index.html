@@ -58,7 +58,7 @@
 </li>
 <li><p>If the user's browser supports <a href="http://caniuse.com/#feat=cryptography">native WebCrypto</a> via the <code>window.crypto.subtle</code> api, this will be used. Under node.js the native <a href="https://nodejs.org/api/crypto.html#crypto_crypto">crypto module</a> is used. This can be deactivated by setting <code>openpgp.config.use_native = false</code>.</p>
 </li>
-<li><p>The library implements the <a href="https://tools.ietf.org/html/draft-ford-openpgp-format-00">IETF proposal</a> for authenticated encryption <a href="https://github.com/openpgpjs/openpgpjs/pull/430">using native AES-GCM</a>. This makes symmetric encryption about 30x faster on supported platforms. Since the specification has not been finalized and other OpenPGP implementations haven't adopted it yet, the feature is currently behind a flag. You can activate it by setting <code>openpgp.config.aead_protect = true</code>.</p>
+<li><p>The library implements the <a href="https://tools.ietf.org/html/draft-ford-openpgp-format-00">IETF proposal</a> for authenticated encryption <a href="https://github.com/openpgpjs/openpgpjs/pull/430">using native AES-GCM</a>. This makes symmetric encryption about 30x faster on supported platforms. Since the specification has not been finalized and other OpenPGP implementations haven't adopted it yet, the feature is currently behind a flag. You can activate it by setting <code>openpgp.config.aead_protect = true</code>. <strong>Note: activating this setting can break compatibility with other OpenPGP implementations, so be careful if that's one of your requirements.</strong></p>
 </li>
 <li><p>For environments that don't provide native crypto, the library falls back to <a href="http://caniuse.com/#feat=asmjs">asm.js</a> implementations of AES, SHA-1, and SHA-256. We use <a href="https://github.com/srijs/rusha">Rusha</a> and <a href="https://github.com/openpgpjs/asmcrypto-lite">asmCrypto Lite</a> (a minimal subset of asmCrypto.js built specifically for OpenPGP.js).</p>
 </li>
@@ -90,12 +90,16 @@ openpgp.decrypt(options).then(function(plaintext) {
 });</code></pre><h4>Encrypt and decrypt <em>String</em> data with PGP keys</h4><pre class="prettyprint source lang-js"><code>var options, encrypted;
 
 var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----';
-var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----';
+var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----'; //encrypted private key
+var passphrase = 'secret passphrase'; //what the privKey is encrypted with
+
+var privKeyObj = openpgp.key.readArmored(privkey).keys[0];
+privKeyObj.decrypt(passphrase);
 
 options = {
     data: 'Hello, World!',                             // input as String (or Uint8Array)
     publicKeys: openpgp.key.readArmored(pubkey).keys,  // for encryption
-    privateKeys: openpgp.key.readArmored(privkey).keys // for signing (optional)
+    privateKeys: privKeyObj // for signing (optional)
 };
 
 openpgp.encrypt(options).then(function(ciphertext) {
@@ -103,7 +107,7 @@ openpgp.encrypt(options).then(function(ciphertext) {
 });</code></pre><pre class="prettyprint source lang-js"><code>options = {
     message: openpgp.message.readArmored(encrypted),     // parse armored message
     publicKeys: openpgp.key.readArmored(pubkey).keys,    // for verification (optional)
-    privateKey: openpgp.key.readArmored(privkey).keys[0] // for decryption
+    privateKey: privKeyObj // for decryption
 };
 
 openpgp.decrypt(options).then(function(plaintext) {
@@ -132,9 +136,13 @@ var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----'
 hkp.upload(pubkey).then(function() { ... });</code></pre><h4>Sign and verify cleartext messages</h4><pre class="prettyprint source lang-js"><code>var options, cleartext, validity;
 
 var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----';
-var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----';</code></pre><pre class="prettyprint source lang-js"><code>options = {
+var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----'; //encrypted private key
+var passphrase = 'secret passphrase'; //what the privKey is encrypted with
+
+var privKeyObj = openpgp.key.readArmored(privkey).keys[0];
+privKeyObj.decrypt(passphrase);</code></pre><pre class="prettyprint source lang-js"><code>options = {
     data: 'Hello, World!',                             // input as String (or Uint8Array)
-    privateKeys: openpgp.key.readArmored(privkey).keys // for signing
+    privateKeys: privKeyObj // for signing
 };
 
 openpgp.sign(options).then(function(signed) {
@@ -152,9 +160,13 @@ openpgp.verify(options).then(function(verified) {
 });</code></pre><h4>Create and verify <em>detached</em> signatures</h4><pre class="prettyprint source lang-js"><code>var options, cleartext, detachedSig, validity;
 
 var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----';
-var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----';</code></pre><pre class="prettyprint source lang-js"><code>options = {
+var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----'; //encrypted private key
+var passphrase = 'secret passphrase'; //what the privKey is encrypted with
+
+var privKeyObj = openpgp.key.readArmored(privkey).keys[0];
+privKeyObj.decrypt(passphrase);</code></pre><pre class="prettyprint source lang-js"><code>options = {
     data: 'Hello, World!',                             // input as String (or Uint8Array)
-    privateKeys: openpgp.key.readArmored(privkey).keys, // for signing
+    privateKeys: privKeyObj, // for signing
     detached: true
 };
 
@@ -577,7 +589,7 @@ the structured cloning algorithm.</div>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Fri Mar 17 2017 17:12:59 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Tue Mar 28 2017 13:14:49 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>
