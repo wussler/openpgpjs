@@ -49,6 +49,8 @@
  * @requires key
  * @requires config
  * @requires util
+ * @requires polyfills
+ * @requires worker/async_proxy
  * @module openpgp
  */
 
@@ -58,17 +60,17 @@
  * for extending and developing on top of the base library.
  */
 
-'use strict';
-
-import * as messageLib from './message.js';
-import * as cleartext from './cleartext.js';
-import * as key from './key.js';
-import config from './config/config.js';
+import * as messageLib from './message';
+import { CleartextMessage } from './cleartext';
+import { generate, reformat } from './key';
+import config from './config/config';
 import util from './util';
-import AsyncProxy from './worker/async_proxy.js';
-import es6Promise from 'es6-promise';
-es6Promise.polyfill(); // load ES6 Promises polyfill
+import AsyncProxy from './worker/async_proxy';
 
+// Old browser polyfills
+if (typeof window !== 'undefined') {
+  require('./polyfills');
+}
 
 //////////////////////////
 //                      //
@@ -81,19 +83,20 @@ let asyncProxy; // instance of the asyncproxy
 
 /**
  * Set the path for the web worker script and create an instance of the async proxy
- * @param {String} path     relative path to the worker scripts, default: 'openpgp.worker.js'
- * @param {Object} worker   alternative to path parameter: web worker initialized with 'openpgp.worker.js'
+ * @param {String} path            relative path to the worker scripts, default: 'openpgp.worker.js'
+ * @param {Number} n               number of workers to initialize
+ * @param {Array&lt;Object>} workers  alternative to path parameter: web workers initialized with 'openpgp.worker.js'
  */
-export function initWorker({ path='openpgp.worker.js', worker } = {}) {
-  if (worker || typeof window !== 'undefined' &amp;&amp; window.Worker) {
-    asyncProxy = new AsyncProxy({ path, worker, config });
+export function initWorker({ path='openpgp.worker.js', n = 1, workers = [] } = {}) {
+  if (workers.length || (typeof window !== 'undefined' &amp;&amp; window.Worker)) {
+    asyncProxy = new AsyncProxy({ path, n, workers, config });
     return true;
   }
 }
 
 /**
  * Returns a reference to the async proxy if the worker was initialized with openpgp.initWorker()
- * @return {module:worker/async_proxy~AsyncProxy|null} the async proxy or null if not initialized
+ * @returns {module:worker/async_proxy~AsyncProxy|null} the async proxy or null if not initialized
  */
 export function getWorker() {
   return asyncProxy;
@@ -115,54 +118,74 @@ export function destroyWorker() {
 
 
 /**
- * Generates a new OpenPGP key pair. Currently only supports RSA keys. Primary and subkey will be of same type.
+ * Generates a new OpenPGP key pair. Supports RSA and ECC keys. Primary and subkey will be of same type.
  * @param  {Array&lt;Object>} userIds   array of user IDs e.g. [{ name:'Phil Zimmermann', email:'phil@openpgp.org' }]
  * @param  {String} passphrase       (optional) The passphrase used to encrypt the resulting private key
- * @param  {Number} numBits          (optional) number of bits for the key creation. (should be 2048 or 4096)
+ * @param  {Number} numBits          (optional) number of bits for RSA keys: 2048 or 4096.
+ * @param  {String} curve            (optional) elliptic curve for ECC keys: curve25519, p256, p384, p521, or secp256k1
  * @param  {Boolean} unlocked        (optional) If the returned secret part of the generated key is unlocked
  * @param  {Number} keyExpirationTime (optional) The number of seconds after the key creation time that the key expires
- * @return {Promise&lt;Object>}         The generated key object in the form:
+ * @returns {Promise&lt;Object>}         The generated key object in the form:
  *                                     { key:Key, privateKeyArmored:String, publicKeyArmored:String }
+ * @async
  * @static
  */
-export function generateKey({ userIds=[], passphrase, numBits=2048, unlocked=false, keyExpirationTime=0 } = {}) {
-  const options = formatUserIds({ userIds, passphrase, numBits, unlocked, keyExpirationTime });
+
+export function generateKey({
+  userIds=[], passphrase, numBits=2048, unlocked=false, keyExpirationTime=0, curve=""
+} = {}) {
+  userIds = formatUserIds(userIds);
+  const options = {
+    userIds, passphrase, numBits, unlocked, keyExpirationTime, curve
+  };
+
+  if (util.getWebCryptoAll() &amp;&amp; numBits &lt; 2048) {
+    throw new Error('numBits should be 2048 or 4096, found: ' + numBits);
+  }
 
   if (!util.getWebCryptoAll() &amp;&amp; asyncProxy) { // use web worker if web crypto apis are not supported
     return asyncProxy.delegate('generateKey', options);
   }
 
-  return key.generate(options).then(newKey => ({
+  return generate(options).then(key => ({
 
-    key: newKey,
-    privateKeyArmored: newKey.armor(),
-    publicKeyArmored: newKey.toPublic().armor()
+    key: key,
+    privateKeyArmored: key.armor(),
+    publicKeyArmored: key.toPublic().armor()
 
   })).catch(onError.bind(null, 'Error generating keypair'));
 }
 
 /**
  * Reformats signature packets for a key and rewraps key object.
+ * @param  {Key} privateKey          private key to reformat
  * @param  {Array&lt;Object>} userIds   array of user IDs e.g. [{ name:'Phil Zimmermann', email:'phil@openpgp.org' }]
  * @param  {String} passphrase       (optional) The passphrase used to encrypt the resulting private key
  * @param  {Boolean} unlocked        (optional) If the returned secret part of the generated key is unlocked
  * @param  {Number} keyExpirationTime (optional) The number of seconds after the key creation time that the key expires
- * @return {Promise&lt;Object>}         The generated key object in the form:
+ * @returns {Promise&lt;Object>}         The generated key object in the form:
  *                                     { key:Key, privateKeyArmored:String, publicKeyArmored:String }
+ * @async
  * @static
  */
-export function reformatKey({ privateKey, userIds=[], passphrase="", unlocked=false, keyExpirationTime=0 } = {}) {
-  const options = formatUserIds({ privateKey, userIds, passphrase, unlocked, keyExpirationTime });
+export function reformatKey({
+  privateKey, userIds=[], passphrase="", unlocked=false, keyExpirationTime=0
+} = {}) {
+  userIds = formatUserIds(userIds);
 
-  if (!util.getWebCryptoAll() &amp;&amp; asyncProxy) { // use web worker if web crypto apis are not supported
+  const options = {
+    privateKey, userIds, passphrase, unlocked, keyExpirationTime
+  };
+
+  if (asyncProxy) {
     return asyncProxy.delegate('reformatKey', options);
   }
 
-  return key.reformat(options).then(newKey => ({
+  return reformat(options).then(key => ({
 
-    key: newKey,
-    privateKeyArmored: newKey.armor(),
-    publicKeyArmored: newKey.toPublic().armor()
+    key: key,
+    privateKeyArmored: key.armor(),
+    publicKeyArmored: key.toPublic().armor()
 
   })).catch(onError.bind(null, 'Error reformatting keypair'));
 }
@@ -171,23 +194,42 @@ export function reformatKey({ privateKey, userIds=[], passphrase="", unlocked=fa
  * Unlock a private key with your passphrase.
  * @param  {Key} privateKey      the private key that is to be decrypted
  * @param  {String} passphrase   the user's passphrase chosen during key generation
- * @return {Key}                 the unlocked private key
+ * @returns {Promise&lt;Object>}     the unlocked key object in the form: { key:Key }
+ * @async
  */
 export function decryptKey({ privateKey, passphrase }) {
   if (asyncProxy) { // use web worker if available
     return asyncProxy.delegate('decryptKey', { privateKey, passphrase });
   }
 
-  return execute(() => {
+  return Promise.resolve().then(async function() {
+    await privateKey.decrypt(passphrase);
 
-    if (!privateKey.decrypt(passphrase)) {
-      throw new Error('Invalid passphrase');
-    }
     return {
       key: privateKey
     };
+  }).catch(onError.bind(null, 'Error decrypting private key'));
+}
 
-  }, 'Error decrypting private key');
+/**
+ * Lock a private key with your passphrase.
+ * @param  {Key} privateKey      the private key that is to be decrypted
+ * @param  {String} passphrase   the user's passphrase chosen during key generation
+ * @returns {Promise&lt;Object>}     the locked key object in the form: { key:Key }
+ * @async
+ */
+export function encryptKey({ privateKey, passphrase }) {
+  if (asyncProxy) { // use web worker if available
+    return asyncProxy.delegate('encryptKey', { privateKey, passphrase });
+  }
+
+  return Promise.resolve().then(async function() {
+    await privateKey.encrypt(passphrase);
+
+    return {
+      key: privateKey
+    };
+  }).catch(onError.bind(null, 'Error decrypting private key'));
 }
 
 
@@ -201,51 +243,56 @@ export function decryptKey({ privateKey, passphrase }) {
 /**
  * Encrypts message text/data with public keys, passwords or both at once. At least either public keys or passwords
  *   must be specified. If private keys are specified, those will be used to sign the message.
- * @param  {String|Uint8Array} data           text/data to be encrypted as JavaScript binary string or Uint8Array
- * @param  {Key|Array&lt;Key>} publicKeys        (optional) array of keys or single key, used to encrypt the message
- * @param  {Key|Array&lt;Key>} privateKeys       (optional) private keys for signing. If omitted message will not be signed
- * @param  {String|Array&lt;String>} passwords   (optional) array of passwords or a single password to encrypt the message
- * @param  {String} filename                  (optional) a filename for the literal data packet
- * @param  {Boolean} armor                    (optional) if the return values should be ascii armored or the message/signature objects
- * @param  {Boolean} detached                 (optional) if the signature should be detached (if true, signature will be added to returned object)
- * @param  {Signature} signature              (optional) a detached signature to add to the encrypted message
- * @return {Promise&lt;Object>}                  encrypted (and optionally signed message) in the form:
- *                                              {data: ASCII armored message if 'armor' is true,
- *                                                message: full Message object if 'armor' is false, signature: detached signature if 'detached' is true}
+ * @param  {String|Uint8Array} data               text/data to be encrypted as JavaScript binary string or Uint8Array
+ * @param  {Key|Array&lt;Key>} publicKeys            (optional) array of keys or single key, used to encrypt the message
+ * @param  {Key|Array&lt;Key>} privateKeys           (optional) private keys for signing. If omitted message will not be signed
+ * @param  {String|Array&lt;String>} passwords       (optional) array of passwords or a single password to encrypt the message
+ * @param  {Object} sessionKey                    (optional) session key in the form: { data:Uint8Array, algorithm:String }
+ * @param  {String} filename                      (optional) a filename for the literal data packet
+ * @param  {module:enums.compression} compression (optional) which compression algorithm to compress the message with, defaults to what is specified in config
+ * @param  {Boolean} armor                        (optional) if the return values should be ascii armored or the message/signature objects
+ * @param  {Boolean} detached                     (optional) if the signature should be detached (if true, signature will be added to returned object)
+ * @param  {Signature} signature                  (optional) a detached signature to add to the encrypted message
+ * @param  {Boolean} returnSessionKey             (optional) if the unencrypted session key should be added to returned object
+ * @param  {Boolean} wildcard                     (optional) use a key ID of 0 instead of the public key IDs
+ * @param  {Date} date                            (optional) override the creation date of the message and the message signature
+ * @returns {Promise&lt;Object>}                      encrypted (and optionally signed message) in the form:
+ *                                                  {data: ASCII armored message if 'armor' is true,
+ *                                                  message: full Message object if 'armor' is false, signature: detached signature if 'detached' is true}
+ * @async
  * @static
  */
-export function encrypt({ data, publicKeys, privateKeys, passwords, filename, armor=true, detached=false, signature=null }) {
+export function encrypt({ data, publicKeys, privateKeys, passwords, sessionKey, filename, compression=config.compression, armor=true, detached=false, signature=null, returnSessionKey=false, wildcard=false, date=new Date()}) {
   checkData(data); publicKeys = toArray(publicKeys); privateKeys = toArray(privateKeys); passwords = toArray(passwords);
 
   if (!nativeAEAD() &amp;&amp; asyncProxy) { // use web worker if web crypto apis are not supported
-    return asyncProxy.delegate('encrypt', { data, publicKeys, privateKeys, passwords, filename, armor, detached, signature });
+    return asyncProxy.delegate('encrypt', { data, publicKeys, privateKeys, passwords, sessionKey, filename, armor, detached, signature, returnSessionKey, wildcard, date });
   }
-  var result = {};
-  return Promise.resolve().then(() => {
-
-    let message = createMessage(data, filename);
+  const result = {};
+  return Promise.resolve().then(async function() {
+    let message = createMessage(data, filename, date);
     if (!privateKeys) {
       privateKeys = [];
     }
     if (privateKeys.length || signature) { // sign the message only if private keys or signature is specified
       if (detached) {
-        var detachedSignature = message.signDetached(privateKeys, signature);
-        if (armor) {
-          result.signature = detachedSignature.armor();
-        } else {
-          result.signature = detachedSignature;
-        }
+        const detachedSignature = await message.signDetached(privateKeys, signature, date);
+        result.signature = armor ? detachedSignature.armor() : detachedSignature;
       } else {
-        message = message.sign(privateKeys, signature);
+        message = await message.sign(privateKeys, signature, date);
       }
     }
-    return message.encrypt(publicKeys, passwords);
+    message = message.compress(compression);
+    return message.encrypt(publicKeys, passwords, sessionKey, wildcard, date);
 
-  }).then(message => {
+  }).then(encrypted => {
     if (armor) {
-      result.data = message.armor();
+      result.data = encrypted.message.armor();
     } else {
-      result.message = message;
+      result.message = encrypted.message;
+    }
+    if (returnSessionKey) {
+      result.sessionKey = encrypted.sessionKey;
     }
     return result;
   }).catch(onError.bind(null, 'Error encrypting message'));
@@ -254,40 +301,36 @@ export function encrypt({ data, publicKeys, privateKeys, passwords, filename, ar
 /**
  * Decrypts a message with the user's private key, a session key or a password. Either a private key,
  *   a session key or a password must be specified.
- * @param  {Message} message             the message object with the encrypted data
- * @param  {Key} privateKey              (optional) private key with decrypted secret key data or session key
- * @param  {Key|Array&lt;Key>} publicKeys   (optional) array of public keys or single key, to verify signatures
- * @param  {Object} sessionKey           (optional) session key in the form: { data:Uint8Array, algorithm:String }
- * @param  {String} password             (optional) single password to decrypt the message
- * @param  {String} format               (optional) return data format either as 'utf8' or 'binary'
- * @param  {Signature} signature         (optional) detached signature for verification
- * @return {Promise&lt;Object>}             decrypted and verified message in the form:
+ * @param  {Message} message                  the message object with the encrypted data
+ * @param  {Key|Array&lt;Key>} privateKeys       (optional) private keys with decrypted secret key data or session key
+ * @param  {String|Array&lt;String>} passwords   (optional) passwords to decrypt the message
+ * @param  {Object|Array&lt;Object>} sessionKeys (optional) session keys in the form: { data:Uint8Array, algorithm:String }
+ * @param  {Key|Array&lt;Key>} publicKeys        (optional) array of public keys or single key, to verify signatures
+ * @param  {String} format                    (optional) return data format either as 'utf8' or 'binary'
+ * @param  {Signature} signature              (optional) detached signature for verification
+ * @param  {Date} date                        (optional) use the given date for verification instead of the current time
+ * @returns {Promise&lt;Object>}             decrypted and verified message in the form:
  *                                         { data:Uint8Array|String, filename:String, signatures:[{ keyid:String, valid:Boolean }] }
+ * @async
  * @static
  */
-export function decrypt({ message, privateKey, publicKeys, sessionKey, password, format='utf8', signature=null }) {
-  checkMessage(message); publicKeys = toArray(publicKeys);
+export function decrypt({ message, privateKeys, passwords, sessionKeys, publicKeys, format='utf8', signature=null, date=new Date() }) {
+  checkMessage(message); publicKeys = toArray(publicKeys); privateKeys = toArray(privateKeys); passwords = toArray(passwords); sessionKeys = toArray(sessionKeys);
 
   if (!nativeAEAD() &amp;&amp; asyncProxy) { // use web worker if web crypto apis are not supported
-    return asyncProxy.delegate('decrypt', { message, privateKey, publicKeys, sessionKey, password, format, signature });
+    return asyncProxy.delegate('decrypt', { message, privateKeys, passwords, sessionKeys, publicKeys, format, signature, date });
   }
 
-  return message.decrypt(privateKey, sessionKey, password).then(message => {
+  return message.decrypt(privateKeys, passwords, sessionKeys).then(async function(message) {
 
     const result = parseMessage(message, format);
-    if (result.data) { // verify
-      if (!publicKeys) {
-        publicKeys = [];
-      }
-      if (signature) {
-        //detached signature
-        result.signatures = message.verifyDetached(signature, publicKeys);
-      } else {
-        result.signatures = message.verify(publicKeys);
-      }
-    }
-    return result;
 
+    if (!publicKeys) {
+      publicKeys = [];
+    }
+
+    result.signatures = signature ? await message.verifyDetached(signature, publicKeys, date) : await message.verify(publicKeys, date);
+    return result;
   }).catch(onError.bind(null, 'Error decrypting message'));
 }
 
@@ -301,47 +344,46 @@ export function decrypt({ message, privateKey, publicKeys, sessionKey, password,
 
 /**
  * Signs a cleartext message.
- * @param  {String} data                        cleartext input to be signed
+ * @param  {String | Uint8Array} data           cleartext input to be signed
  * @param  {Key|Array&lt;Key>} privateKeys         array of keys or single key with decrypted secret key data to sign cleartext
  * @param  {Boolean} armor                      (optional) if the return value should be ascii armored or the message object
  * @param  {Boolean} detached                   (optional) if the return value should contain a detached signature
- * @return {Promise&lt;Object>}                    signed cleartext in the form:
+ * @param  {Date} date                          (optional) override the creation date signature
+ * @returns {Promise&lt;Object>}                    signed cleartext in the form:
  *                                                {data: ASCII armored message if 'armor' is true,
  *                                                message: full Message object if 'armor' is false, signature: detached signature if 'detached' is true}
+ * @async
  * @static
  */
-export function sign({ data, privateKeys, armor=true, detached=false}) {
-  checkString(data);
+export function sign({
+  data, privateKeys, armor=true, detached=false, date=new Date()
+}) {
+  checkData(data);
   privateKeys = toArray(privateKeys);
 
   if (asyncProxy) { // use web worker if available
-    return asyncProxy.delegate('sign', { data, privateKeys, armor, detached });
+    return asyncProxy.delegate('sign', {
+      data, privateKeys, armor, detached, date
+    });
   }
 
-  var result = {};
-  return execute(() => {
-
-    const cleartextMessage = new cleartext.CleartextMessage(data);
+  const result = {};
+  return Promise.resolve().then(async function() {
+    let message = util.isString(data) ? new CleartextMessage(data) : messageLib.fromBinary(data);
 
     if (detached) {
-      var signature = cleartextMessage.signDetached(privateKeys);
+      const signature = await message.signDetached(privateKeys, undefined, date);
+      result.signature = armor ? signature.armor() : signature;
+    } else {
+      message = await message.sign(privateKeys, undefined, date);
       if (armor) {
-        result.signature = signature.armor();
+        result.data = message.armor();
       } else {
-        result.signature = signature;
+        result.message = message;
       }
-    } else {
-      cleartextMessage.sign(privateKeys);
-    }
-
-    if (armor) {
-      result.data = cleartextMessage.armor();
-    } else {
-      result.message = cleartextMessage;
     }
     return result;
-
-  }, 'Error signing cleartext message');
+  }).catch(onError.bind(null, 'Error signing cleartext message'));
 }
 
 /**
@@ -349,31 +391,28 @@ export function sign({ data, privateKeys, armor=true, detached=false}) {
  * @param  {Key|Array&lt;Key>} publicKeys   array of publicKeys or single key, to verify signatures
  * @param  {CleartextMessage} message    cleartext message object with signatures
  * @param  {Signature} signature         (optional) detached signature for verification
- * @return {Promise&lt;Object>}             cleartext with status of verified signatures in the form of:
- *                                         { data:String, signatures: [{ keyid:String, valid:Boolean }] }
+ * @param  {Date} date                   (optional) use the given date for verification instead of the current time
+ * @returns {Promise&lt;Object>}             cleartext with status of verified signatures in the form of:
+ *                                       { data:String, signatures: [{ keyid:String, valid:Boolean }] }
+ * @async
  * @static
  */
-export function verify({ message, publicKeys, signature=null }) {
-  checkCleartextMessage(message);
+export function verify({ message, publicKeys, signature=null, date=new Date() }) {
+  checkCleartextOrMessage(message);
   publicKeys = toArray(publicKeys);
 
   if (asyncProxy) { // use web worker if available
-    return asyncProxy.delegate('verify', { message, publicKeys, signature });
+    return asyncProxy.delegate('verify', { message, publicKeys, signature, date });
   }
 
-  var result = {};
-  return execute(() => {
-    result.data = message.getText();
-
-    if (signature) {
-      //detached signature
-      result.signatures = message.verifyDetached(signature, publicKeys);
-    } else {
-      result.signatures = message.verify(publicKeys);
-    }
+  return Promise.resolve().then(async function() {
+    const result = {};
+    result.data = message instanceof CleartextMessage ? message.getText() : message.getLiteralData();
+    result.signatures = signature ?
+      await message.verifyDetached(signature, publicKeys, date) :
+      await message.verify(publicKeys, date);
     return result;
-
-  }, 'Error verifying cleartext signed message');
+  }).catch(onError.bind(null, 'Error verifying cleartext signed message'));
 }
 
 
@@ -391,42 +430,49 @@ export function verify({ message, publicKeys, signature=null }) {
  * @param  {String} algorithm                 algorithm of the symmetric session key e.g. 'aes128' or 'aes256'
  * @param  {Key|Array&lt;Key>} publicKeys        (optional) array of public keys or single key, used to encrypt the key
  * @param  {String|Array&lt;String>} passwords   (optional) passwords for the message
- * @return {Promise&lt;Message>}                 the encrypted session key packets contained in a message object
+ * @param  {Boolean} wildcard                 (optional) use a key ID of 0 instead of the public key IDs
+ * @returns {Promise&lt;Message>}                 the encrypted session key packets contained in a message object
+ * @async
  * @static
  */
-export function encryptSessionKey({ data, algorithm, publicKeys, passwords }) {
-  checkbinary(data); checkString(algorithm, 'algorithm'); publicKeys = toArray(publicKeys); passwords = toArray(passwords);
+export function encryptSessionKey({ data, algorithm, publicKeys, passwords, wildcard=false }) {
+  checkBinary(data); checkString(algorithm, 'algorithm'); publicKeys = toArray(publicKeys); passwords = toArray(passwords);
 
   if (asyncProxy) { // use web worker if available
-    return asyncProxy.delegate('encryptSessionKey', { data, algorithm, publicKeys, passwords });
+    return asyncProxy.delegate('encryptSessionKey', { data, algorithm, publicKeys, passwords, wildcard });
   }
 
-  return execute(() => ({
+  return Promise.resolve().then(async function() {
 
-    message: messageLib.encryptSessionKey(data, algorithm, publicKeys, passwords)
+    return { message: await messageLib.encryptSessionKey(data, algorithm, publicKeys, passwords, wildcard) };
 
-  }), 'Error encrypting session key');
+  }).catch(onError.bind(null, 'Error encrypting session key'));
 }
 
 /**
- * Decrypt a symmetric session key with a private key or password. Either a private key or
+ * Decrypt symmetric session keys with a private key or password. Either a private key or
  *   a password must be specified.
- * @param  {Message} message              a message object containing the encrypted session key packets
- * @param  {Key} privateKey               (optional) private key with decrypted secret key data
- * @param  {String} password              (optional) a single password to decrypt the session key
- * @return {Promise&lt;Object|undefined>}    decrypted session key and algorithm in object form:
+ * @param  {Message} message                 a message object containing the encrypted session key packets
+ * @param  {Key|Array&lt;Key>} privateKeys     (optional) private keys with decrypted secret key data
+ * @param  {String|Array&lt;String>} passwords (optional) passwords to decrypt the session key
+ * @returns {Promise&lt;Object|undefined>}    Array of decrypted session key, algorithm pairs in form:
  *                                          { data:Uint8Array, algorithm:String }
  *                                          or 'undefined' if no key packets found
+ * @async
  * @static
  */
-export function decryptSessionKey({ message, privateKey, password }) {
-  checkMessage(message);
+export function decryptSessionKeys({ message, privateKeys, passwords }) {
+  checkMessage(message); privateKeys = toArray(privateKeys); passwords = toArray(passwords);
 
   if (asyncProxy) { // use web worker if available
-    return asyncProxy.delegate('decryptSessionKey', { message, privateKey, password });
+    return asyncProxy.delegate('decryptSessionKeys', { message, privateKeys, passwords });
   }
 
-  return execute(() => message.decryptSessionKey(privateKey, password), 'Error decrypting session key');
+  return Promise.resolve().then(async function() {
+
+    return message.decryptSessionKeys(privateKeys, passwords);
+
+  }).catch(onError.bind(null, 'Error decrypting session keys'));
 }
 
 
@@ -445,7 +491,7 @@ function checkString(data, name) {
     throw new Error('Parameter [' + (name || 'data') + '] must be of type String');
   }
 }
-function checkbinary(data, name) {
+function checkBinary(data, name) {
   if (!util.isUint8Array(data)) {
     throw new Error('Parameter [' + (name || 'data') + '] must be of type Uint8Array');
   }
@@ -456,25 +502,25 @@ function checkData(data, name) {
   }
 }
 function checkMessage(message) {
-  if (!messageLib.Message.prototype.isPrototypeOf(message)) {
+  if (!(message instanceof messageLib.Message)) {
     throw new Error('Parameter [message] needs to be of type Message');
   }
 }
-function checkCleartextMessage(message) {
-  if (!cleartext.CleartextMessage.prototype.isPrototypeOf(message)) {
-    throw new Error('Parameter [message] needs to be of type CleartextMessage');
+function checkCleartextOrMessage(message) {
+  if (!(message instanceof CleartextMessage) &amp;&amp; !(message instanceof messageLib.Message)) {
+    throw new Error('Parameter [message] needs to be of type Message or CleartextMessage');
   }
 }
 
 /**
  * Format user ids for internal use.
  */
-function formatUserIds(options) {
-  if (!options.userIds) {
-    return options;
+function formatUserIds(userIds) {
+  if (!userIds) {
+    return userIds;
   }
-  options.userIds = toArray(options.userIds); // normalize to array
-  options.userIds = options.userIds.map(id => {
+  userIds = toArray(userIds); // normalize to array
+  userIds = userIds.map(id => {
     if (util.isString(id) &amp;&amp; !util.isUserId(id)) {
       throw new Error('Invalid user id format');
     }
@@ -493,13 +539,13 @@ function formatUserIds(options) {
     }
     return id.name + '&lt;' + id.email + '>';
   });
-  return options;
+  return userIds;
 }
 
 /**
  * Normalize parameter to an array if it is not undefined.
  * @param  {Object} param              the parameter to be normalized
- * @return {Array&lt;Object>|undefined}   the resulting array or undefined
+ * @returns {Array&lt;Object>|undefined}   the resulting array or undefined
  */
 function toArray(param) {
   if (param &amp;&amp; !util.isArray(param)) {
@@ -512,14 +558,15 @@ function toArray(param) {
  * Creates a message obejct either from a Uint8Array or a string.
  * @param  {String|Uint8Array} data   the payload for the message
  * @param  {String} filename          the literal data packet's filename
- * @return {Message}                  a message object
+ * @param  {Date} date      the creation date of the package
+ * @returns {Message}                  a message object
  */
-function createMessage(data, filename) {
+function createMessage(data, filename, date=new Date()) {
   let msg;
   if (util.isUint8Array(data)) {
-    msg = messageLib.fromBinary(data, filename);
+    msg = messageLib.fromBinary(data, filename, date);
   } else if (util.isString(data)) {
-    msg = messageLib.fromText(data, filename);
+    msg = messageLib.fromText(data, filename, date);
   } else {
     throw new Error('Data must be of type String or Uint8Array');
   }
@@ -530,7 +577,7 @@ function createMessage(data, filename) {
  * Parse the message given a certain format.
  * @param  {Message} message   the message object to be parse
  * @param  {String} format     the output format e.g. 'utf8' or 'binary'
- * @return {Object}            the parse data in the respective format
+ * @returns {Object}            the parse data in the respective format
  */
 function parseMessage(message, format) {
   if (format === 'binary') {
@@ -543,23 +590,8 @@ function parseMessage(message, format) {
       data: message.getText(),
       filename: message.getFilename()
     };
-  } else {
-    throw new Error('Invalid format');
   }
-}
-
-/**
- * Command pattern that wraps synchronous code into a promise.
- * @param  {function} cmd     The synchronous function with a return value
- *                              to be wrapped in a promise
- * @param  {String} message   A human readable error Message
- * @return {Promise}          The promise wrapped around cmd
- */
-function execute(cmd, message) {
-  // wrap the sync cmd in a promise
-  const promise = new Promise(resolve => resolve(cmd()));
-  // handler error globally
-  return promise.catch(onError.bind(null, message));
+  throw new Error('Invalid format');
 }
 
 /**
@@ -570,14 +602,17 @@ function execute(cmd, message) {
 function onError(message, error) {
   // log the stack trace
   if (config.debug) { console.error(error.stack); }
-  // rethrow new high level error for api users
-  throw new Error(message + ': ' + error.message);
+
+  // update error message
+  error.message = message + ': ' + error.message;
+
+  throw error;
 }
 
 /**
  * Check for AES-GCM support and configuration by the user. Only browsers that
  * implement the current WebCrypto specification support native AES-GCM.
- * @return {Boolean}   If authenticated encryption should be used
+ * @returns {Boolean}   If authenticated encryption should be used
  */
 function nativeAEAD() {
   return util.getWebCrypto() &amp;&amp; config.aead_protect;
@@ -592,13 +627,13 @@ function nativeAEAD() {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_hash_ripe-md.html">crypto/hash/ripe-md</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_jsbn.html">crypto/public_key/jsbn</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="jsSHA.html">jsSHA</a></li><li><a href="module.html#.exports">exports</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_s2k.html">type/s2k</a></li></ul><h3>Global</h3><ul><li><a href="global.html#clonePackets">clonePackets</a></li><li><a href="global.html#configure">configure</a></li><li><a href="global.html#decrypt">decrypt</a></li><li><a href="global.html#delegate">delegate</a></li><li><a href="global.html#encrypt">encrypt</a></li><li><a href="global.html#parseClonedPackets">parseClonedPackets</a></li><li><a href="global.html#response">response</a></li><li><a href="global.html#seedRandom">seedRandom</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="AsyncProxy.html">AsyncProxy</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed-Compressed.html">Compressed</a></li><li><a href="module-packet_literal-Literal.html">Literal</a></li><li><a href="module-packet_marker-Marker.html">Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li></ul><h3>Global</h3><ul><li><a href="global.html#configure">configure</a></li><li><a href="global.html#decode">decode</a></li><li><a href="global.html#delegate">delegate</a></li><li><a href="global.html#encode">encode</a></li><li><a href="global.html#handleMessage">handleMessage</a></li><li><a href="global.html#randomCallback">randomCallback</a></li><li><a href="global.html#response">response</a></li><li><a href="global.html#seedRandom">seedRandom</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Tue Mar 28 2017 13:14:49 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Mar 08 2018 21:43:02 GMT+0100 (CET)
 </footer>
 
 <script> prettyPrint(); </script>
