@@ -38,7 +38,7 @@
     <div class="container-overview">
     
         
-            <div class="description">Symmetric cryptography functions</div>
+            <div class="description"><p>Symmetric cryptography functions</p></div>
         
 
         
@@ -125,15 +125,15 @@
         <h3 class="subsection-title">Requires</h3>
 
         <ul>
-            <li><a href="module-crypto_cipher_aes.html">module:crypto/cipher/aes</a></li>
+            <li>module:crypto/cipher/aes</li>
         
-            <li><a href="module-crypto_cipher_des.html">module:crypto/cipher/des</a></li>
+            <li>module:crypto/cipher/des</li>
         
-            <li><a href="module-crypto_cipher_cast5.html">module:crypto/cipher/cast5</a></li>
+            <li>module:crypto/cipher/cast5</li>
         
-            <li><a href="module-crypto_cipher_twofish.html">module:crypto/cipher/twofish</a></li>
+            <li>module:crypto/cipher/twofish</li>
         
-            <li><a href="module-crypto_cipher_blowfish.html">module:crypto/cipher/blowfish</a></li>
+            <li>module:crypto/cipher/blowfish</li>
         </ul>
     
 
@@ -146,145 +146,82 @@
     
 
     
-        <h3 class="subsection-title">Members</h3>
+
+    
+        <h3 class="subsection-title">Methods</h3>
 
         
             
-<h4 class="name" id=".aes128"><span class="type-signature">(static) </span>aes128<span class="type-signature"></span></h4>
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
 
     
 
     
-
+    <h4 class="name" id=".aes128"><span class="type-signature">(static) </span>aes128<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
     
 
     
 
+
+
+<div class="description">
+    <p>AES-128 encryption and decryption (ID 7)</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
     
 
-    
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
 
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line19">line 19</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-    <dt class="tag-see">See:</dt>
-    <dd class="tag-see">
-        <ul>
-            <li><a href="module-crypto_cipher_aes.html">module:crypto/cipher/aes</a></li>
-        </ul>
-    </dd>
-    
-
-    
-</dl>
-
-
-
-
-
+        <th>Type</th>
 
         
-            
-<h4 class="name" id=".blowfish"><span class="type-signature">(static) </span>blowfish<span class="type-signature"></span></h4>
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line31">line 31</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-    <dt class="tag-see">See:</dt>
-    <dd class="tag-see">
-        <ul>
-            <li><a href="module-crypto_cipher_blowfish.html">module:crypto/cipher/blowfish</a></li>
-        </ul>
-    </dd>
-    
-
-    
-</dl>
-
-
-
-
-
 
         
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
             
-<h4 class="name" id=".cast5"><span class="type-signature">(static) </span>cast5<span class="type-signature"></span></h4>
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
 
 
+            
+            </td>
 
+            
 
+            
+
+            <td class="description last"><p>128-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -330,7 +267,9 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="module-crypto_cipher_cast5.html">module:crypto/cipher/cast5</a></li>
+            <li><a href="https://github.com/asmcrypto/asmcrypto.js">asmCrypto</a></li>
+        
+            <li><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">NIST FIPS-197</a></li>
         </ul>
     </dd>
     
@@ -340,16 +279,116 @@
 
 
 
+<h5>Requires:</h5>
+<ul>
+    <li>module:asmcrypto.js</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
 
 
 
         
             
-<h4 class="name" id=".des"><span class="type-signature">(static) </span>des<span class="type-signature"></span></h4>
+
+    
+
+    
+    <h4 class="name" id=".aes192"><span class="type-signature">(static) </span>aes192<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>AES-128 Block Cipher (ID 8)</p>
+</div>
 
 
 
 
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>192-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -385,7 +424,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line23">line 23</a>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line37">line 37</a>
     </li></ul></dd>
     
 
@@ -395,7 +434,9 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li>module:crypto/cipher/des~DES</li>
+            <li><a href="https://github.com/asmcrypto/asmcrypto.js">asmCrypto</a></li>
+        
+            <li><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">NIST FIPS-197</a></li>
         </ul>
     </dd>
     
@@ -405,16 +446,116 @@
 
 
 
+<h5>Requires:</h5>
+<ul>
+    <li>module:asmcrypto.js</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
 
 
 
         
             
-<h4 class="name" id=".tripledes"><span class="type-signature">(static) </span>tripledes<span class="type-signature"></span></h4>
+
+    
+
+    
+    <h4 class="name" id=".aes256"><span class="type-signature">(static) </span>aes256<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>AES-128 Block Cipher (ID 9)</p>
+</div>
 
 
 
 
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>256-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -450,7 +591,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line25">line 25</a>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line47">line 47</a>
     </li></ul></dd>
     
 
@@ -460,7 +601,9 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li>module:crypto/cipher/des~TripleDES</li>
+            <li><a href="https://github.com/asmcrypto/asmcrypto.js">asmCrypto</a></li>
+        
+            <li><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">NIST FIPS-197</a></li>
         </ul>
     </dd>
     
@@ -470,16 +613,116 @@
 
 
 
+<h5>Requires:</h5>
+<ul>
+    <li>module:asmcrypto.js</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
 
 
 
         
             
-<h4 class="name" id=".twofish"><span class="type-signature">(static) </span>twofish<span class="type-signature"></span></h4>
+
+    
+
+    
+    <h4 class="name" id=".blowfish"><span class="type-signature">(static) </span>blowfish<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Blowfish Block Cipher (ID 4)</p>
+</div>
 
 
 
 
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>128-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
 
 
 
@@ -515,7 +758,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line29">line 29</a>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line81">line 81</a>
     </li></ul></dd>
     
 
@@ -525,7 +768,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="module-crypto_cipher_twofish.html">module:crypto/cipher/twofish</a></li>
+            <li><a href="https://tools.ietf.org/html/rfc4880#ref-BLOWFISH">BLOWFISH</a></li>
         </ul>
     </dd>
     
@@ -538,11 +781,195 @@
 
 
 
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
         
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
     
 
     
-        <h3 class="subsection-title">Methods</h3>
+    <h4 class="name" id=".cast5"><span class="type-signature">(static) </span>cast5<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>CAST-128 Block Cipher (ID 3)</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>128-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line65">line 65</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="https://tools.ietf.org/html/rfc2144">The CAST-128 Encryption Algorithm</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
 
         
             
@@ -558,7 +985,7 @@
 
 
 <div class="description">
-    Not implemented
+    <p>Not implemented</p>
 </div>
 
 
@@ -602,7 +1029,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line33">line 33</a>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line87">line 87</a>
     </li></ul></dd>
     
 
@@ -623,8 +1050,343 @@
 
 
 
+<h5>Throws:</h5>
+
+        
+
+    <div class="param-desc">
+    
+        
+<span class="param-type">Error</span>
 
 
+    
+    </div>
+
+
+    
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".tripledes"><span class="type-signature">(static) </span>tripledes<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Triple DES Block Cipher (ID 2)</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>192-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line57">line 57</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-67r2.pdf">NIST SP 800-67</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id=".twofish"><span class="type-signature">(static) </span>twofish<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Twofish Block Cipher (ID 10)</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>256-bit key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line73">line 73</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="https://tools.ietf.org/html/rfc4880#ref-TWOFISH">TWOFISH</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
 
 
 
@@ -646,13 +1408,13 @@
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="AsyncProxy.html">AsyncProxy</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed-Compressed.html">Compressed</a></li><li><a href="module-packet_literal-Literal.html">Literal</a></li><li><a href="module-packet_marker-Marker.html">Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li></ul><h3>Global</h3><ul><li><a href="global.html#configure">configure</a></li><li><a href="global.html#decode">decode</a></li><li><a href="global.html#delegate">delegate</a></li><li><a href="global.html#encode">encode</a></li><li><a href="global.html#handleMessage">handleMessage</a></li><li><a href="global.html#randomCallback">randomCallback</a></li><li><a href="global.html#response">response</a></li><li><a href="global.html#seedRandom">seedRandom</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_aead_protected.html">packet/sym_encrypted_aead_protected</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed-Compressed.html">Compressed</a></li><li><a href="module-packet_literal-Literal.html">Literal</a></li><li><a href="module-packet_marker-Marker.html">Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">Signature</a></li><li><a href="module-packet_sym_encrypted_aead_protected-SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Mar 08 2018 21:43:02 GMT+0100 (CET)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Mar 08 2018 19:46:59 GMT-0800 (PST)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -44,67 +44,125 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /**
- * This object contains global configuration values.
+ * Global configuration values.
  * @requires enums
- * @module config/config
  */
 
 import enums from '../enums';
 
 export default {
-  /** @property {Integer} prefer_hash_algorithm Default hash algorithm {@link module:enums.hash} */
+  /**
+   * @memberof module:config
+   * @property {Integer} prefer_hash_algorithm Default hash algorithm {@link module:enums.hash}
+   */
   prefer_hash_algorithm: enums.hash.sha256,
-  /** @property {Integer} encryption_cipher Default encryption cipher {@link module:enums.symmetric} */
+  /**
+   * @memberof module:config
+   * @property {Integer} encryption_cipher Default encryption cipher {@link module:enums.symmetric}
+   */
   encryption_cipher: enums.symmetric.aes256,
-  /** @property {Integer} compression Default compression algorithm {@link module:enums.compression} */
+  /**
+   * @memberof module:config
+   * @property {Integer} compression Default compression algorithm {@link module:enums.compression}
+   */
   compression: enums.compression.uncompressed,
-  /** @property {Integer} deflate_level Default zip/zlib compression level, between 1 and 9 */
+  /**
+   * @memberof module:config
+   * @property {Integer} deflate_level Default zip/zlib compression level, between 1 and 9
+   */
   deflate_level: 6,
 
   /**
    * Use Authenticated Encryption with Additional Data (AEAD) protection for symmetric encryption.
    * **NOT INTEROPERABLE WITH OTHER OPENPGP IMPLEMENTATIONS**
+   * @memberof module:config
    * @property {Boolean} aead_protect
    */
   aead_protect:             false,
   /** Use integrity protection for symmetric encryption
-   * @property {Boolean} integrity_protect */
+   * @memberof module:config
+   * @property {Boolean} integrity_protect
+   */
   integrity_protect:        true,
-  /** @property {Boolean} ignore_mdc_error Fail on decrypt if message is not integrity protected */
+  /**
+   * @memberof module:config
+   * @property {Boolean} ignore_mdc_error Fail on decrypt if message is not integrity protected
+   */
   ignore_mdc_error:         false,
-  /** @property {Boolean} checksum_required Do not throw error when armor is missing a checksum */
+  /**
+   * @memberof module:config
+   * @property {Boolean} checksum_required Do not throw error when armor is missing a checksum
+   */
   checksum_required:        false,
-  /** @property {Boolean} rsa_blinding */
+  /**
+   * @memberof module:config
+   * @property {Boolean} rsa_blinding
+   */
   rsa_blinding:             true,
-  /** Work-around for rare GPG decryption bug when encrypting with multiple passwords
-   * Slower and slightly less secure
+  /**
+   * Work-around for rare GPG decryption bug when encrypting with multiple passwords.
+   * **Slower and slightly less secure**
+   * @memberof module:config
    * @property {Boolean} password_collision_check
    */
   password_collision_check: false,
-  /** @property {Boolean} revocations_expire If true, expired revocation signatures are ignored */
+  /**
+   * @memberof module:config
+   * @property {Boolean} revocations_expire If true, expired revocation signatures are ignored
+   */
   revocations_expire:       false,
 
-  /** @property {Boolean} use_native Use native Node.js crypto/zlib and WebCrypto APIs when available */
+  /**
+   * @memberof module:config
+   * @property {Boolean} use_native Use native Node.js crypto/zlib and WebCrypto APIs when available
+   */
   use_native:               true,
-  /** @property {Boolean} Use transferable objects between the Web Worker and main thread */
+  /**
+   * @memberof module:config
+   * @property {Boolean} Use transferable objects between the Web Worker and main thread
+   */
   zero_copy:                false,
-  /** @property {Boolean} debug If enabled, debug messages will be printed */
+  /**
+   * @memberof module:config
+   * @property {Boolean} debug If enabled, debug messages will be printed
+   */
   debug:                    false,
-  /** @property {Boolean} tolerant Ignore unsupported/unrecognizable packets instead of throwing an error */
+  /**
+   * @memberof module:config
+   * @property {Boolean} tolerant Ignore unsupported/unrecognizable packets instead of throwing an error
+   */
   tolerant:                 true,
 
-  /** @property {Boolean} show_version Whether to include {@link module:config/config.versionstring} in armored messages */
+  /**
+   * @memberof module:config
+   * @property {Boolean} show_version Whether to include {@link module:config/config.versionstring} in armored messages
+   */
   show_version: true,
-  /** @property {Boolean} show_comment Whether to include {@link module:config/config.commentstring} in armored messages */
+  /**
+   * @memberof module:config
+   * @property {Boolean} show_comment Whether to include {@link module:config/config.commentstring} in armored messages
+   */
   show_comment: true,
-  /** @property {String} versionstring A version string to be included in armored messages */
+  /**
+   * @memberof module:config
+   * @property {String} versionstring A version string to be included in armored messages
+   */
   versionstring: "OpenPGP.js VERSION",
-  /** @property {String} commentstring A comment string to be included in armored messages */
+  /**
+   * @memberof module:config
+   * @property {String} commentstring A comment string to be included in armored messages
+   */
   commentstring: "https://openpgpjs.org",
 
-  /** @property {String} keyserver */
+  /**
+   * @memberof module:config
+   * @property {String} keyserver
+   */
   keyserver:     "https://keyserver.ubuntu.com",
-  /** @property {String} node_store */
+  /**
+   * @memberof module:config
+   * @property {String} node_store
+   */
   node_store:    "./openpgp.store"
 };
 </code></pre>
@@ -117,13 +175,13 @@ export default {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_config.html">config/config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cipher_aes.html">crypto/cipher/aes</a></li><li><a href="module-crypto_cipher_blowfish.html">crypto/cipher/blowfish</a></li><li><a href="module-crypto_cipher_cast5.html">crypto/cipher/cast5</a></li><li><a href="module-crypto_cipher_des.html">crypto/cipher/des</a></li><li><a href="module-crypto_cipher_twofish.html">crypto/cipher/twofish</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_hash_md5.html">crypto/hash/md5</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li></ul><h3>Classes</h3><ul><li><a href="AsyncProxy.html">AsyncProxy</a></li><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed-Compressed.html">Compressed</a></li><li><a href="module-packet_literal-Literal.html">Literal</a></li><li><a href="module-packet_marker-Marker.html">Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">Signature</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li></ul><h3>Global</h3><ul><li><a href="global.html#configure">configure</a></li><li><a href="global.html#decode">decode</a></li><li><a href="global.html#delegate">delegate</a></li><li><a href="global.html#encode">encode</a></li><li><a href="global.html#handleMessage">handleMessage</a></li><li><a href="global.html#randomCallback">randomCallback</a></li><li><a href="global.html#response">response</a></li><li><a href="global.html#seedRandom">seedRandom</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_compressed.html">packet/compressed</a></li><li><a href="module-packet_literal.html">packet/literal</a></li><li><a href="module-packet_marker.html">packet/marker</a></li><li><a href="module-packet_one_pass_signature.html">packet/one_pass_signature</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-packet_packetlist.html">packet/packetlist</a></li><li><a href="module-packet_public_key.html">packet/public_key</a></li><li><a href="module-packet_public_key_encrypted_session_key.html">packet/public_key_encrypted_session_key</a></li><li><a href="module-packet_public_subkey.html">packet/public_subkey</a></li><li><a href="module-packet_secret_key.html">packet/secret_key</a></li><li><a href="module-packet_secret_subkey.html">packet/secret_subkey</a></li><li><a href="module-packet_signature.html">packet/signature</a></li><li><a href="module-packet_sym_encrypted_aead_protected.html">packet/sym_encrypted_aead_protected</a></li><li><a href="module-packet_sym_encrypted_integrity_protected.html">packet/sym_encrypted_integrity_protected</a></li><li><a href="module-packet_sym_encrypted_session_key.html">packet/sym_encrypted_session_key</a></li><li><a href="module-packet_symmetrically_encrypted.html">packet/symmetrically_encrypted</a></li><li><a href="module-packet_trust.html">packet/trust</a></li><li><a href="module-packet_user_attribute.html">packet/user_attribute</a></li><li><a href="module-packet_userid.html">packet/userid</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet_compressed-Compressed.html">Compressed</a></li><li><a href="module-packet_literal-Literal.html">Literal</a></li><li><a href="module-packet_marker-Marker.html">Marker</a></li><li><a href="module-packet_one_pass_signature-OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet_packetlist-Packetlist.html">Packetlist</a></li><li><a href="module-packet_public_key_encrypted_session_key-PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet_public_key-PublicKey.html">PublicKey</a></li><li><a href="module-packet_public_subkey-PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet_secret_key-SecretKey.html">SecretKey</a></li><li><a href="module-packet_secret_subkey-SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet_signature-Signature.html">Signature</a></li><li><a href="module-packet_sym_encrypted_aead_protected-SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet_sym_encrypted_integrity_protected-SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet_sym_encrypted_session_key-SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet_symmetrically_encrypted-SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet_trust-Trust.html">Trust</a></li><li><a href="module-packet_user_attribute-UserAttribute.html">UserAttribute</a></li><li><a href="module-packet_userid-Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Mar 08 2018 21:43:02 GMT+0100 (CET)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Mar 08 2018 19:46:59 GMT-0800 (PST)
 </footer>
 
 <script> prettyPrint(); </script>
