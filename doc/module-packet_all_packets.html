@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: crypto/cipher</title>
+    <title>JSDoc: Module: packet/all_packets</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: crypto/cipher</h1>
+    <h1 class="page-title">Module: packet/all_packets</h1>
 
     
 
@@ -38,7 +38,7 @@
     <div class="container-overview">
     
         
-            <div class="description"><p>Symmetric cryptography functions</p></div>
+            <div class="description"><p>Exports all OpenPGP packet types</p></div>
         
 
         
@@ -87,7 +87,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line1">line 1</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line1">line 1</a>
     </li></ul></dd>
     
 
@@ -125,15 +125,7 @@
         <h3 class="subsection-title">Requires</h3>
 
         <ul>
-            <li>module:crypto/cipher/aes</li>
-        
-            <li>module:crypto/cipher/des</li>
-        
-            <li>module:crypto/cipher/cast5</li>
-        
-            <li>module:crypto/cipher/twofish</li>
-        
-            <li>module:crypto/cipher/blowfish</li>
+            <li><a href="module-enums.html">module:enums</a></li>
         </ul>
     
 
@@ -146,82 +138,15 @@
     
 
     
-
-    
-        <h3 class="subsection-title">Methods</h3>
+        <h3 class="subsection-title">Members</h3>
 
         
             
-
-    
-
-    
-    <h4 class="name" id=".aes128"><span class="type-signature">(static) </span>aes128<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>AES-128 encryption and decryption (ID 7)</p>
-</div>
+<h4 class="name" id=".Compressed"><span class="type-signature">(static) </span>Compressed<span class="type-signature"></span></h4>
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>128-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -257,7 +182,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line27">line 27</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line12">line 12</a>
     </li></ul></dd>
     
 
@@ -267,9 +192,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://github.com/asmcrypto/asmcrypto.js">asmCrypto</a></li>
-        
-            <li><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">NIST FIPS-197</a></li>
+            <li><a href="module-packet.Compressed.html">module:packet.Compressed</a></li>
         </ul>
     </dd>
     
@@ -279,116 +202,16 @@
 
 
 
-<h5>Requires:</h5>
-<ul>
-    <li>module:asmcrypto.js</li>
-</ul>
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
 
 
 
         
             
-
-    
-
-    
-    <h4 class="name" id=".aes192"><span class="type-signature">(static) </span>aes192<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>AES-128 Block Cipher (ID 8)</p>
-</div>
+<h4 class="name" id=".Literal"><span class="type-signature">(static) </span>Literal<span class="type-signature"></span></h4>
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>192-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -424,7 +247,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line37">line 37</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line32">line 32</a>
     </li></ul></dd>
     
 
@@ -434,9 +257,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://github.com/asmcrypto/asmcrypto.js">asmCrypto</a></li>
-        
-            <li><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">NIST FIPS-197</a></li>
+            <li><a href="module-packet.Literal.html">module:packet.Literal</a></li>
         </ul>
     </dd>
     
@@ -446,116 +267,16 @@
 
 
 
-<h5>Requires:</h5>
-<ul>
-    <li>module:asmcrypto.js</li>
-</ul>
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
 
 
 
         
             
-
-    
-
-    
-    <h4 class="name" id=".aes256"><span class="type-signature">(static) </span>aes256<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>AES-128 Block Cipher (ID 9)</p>
-</div>
+<h4 class="name" id=".Marker"><span class="type-signature">(static) </span>Marker<span class="type-signature"></span></h4>
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>256-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -591,7 +312,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line47">line 47</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line44">line 44</a>
     </li></ul></dd>
     
 
@@ -601,9 +322,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://github.com/asmcrypto/asmcrypto.js">asmCrypto</a></li>
-        
-            <li><a href="https://csrc.nist.gov/publications/fips/fips197/fips-197.pdf">NIST FIPS-197</a></li>
+            <li><a href="module-packet.Marker.html">module:packet.Marker</a></li>
         </ul>
     </dd>
     
@@ -613,116 +332,16 @@
 
 
 
-<h5>Requires:</h5>
-<ul>
-    <li>module:asmcrypto.js</li>
-</ul>
-
-
-
-
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
 
 
 
         
             
-
-    
-
-    
-    <h4 class="name" id=".blowfish"><span class="type-signature">(static) </span>blowfish<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Blowfish Block Cipher (ID 4)</p>
-</div>
+<h4 class="name" id=".OnePassSignature"><span class="type-signature">(static) </span>OnePassSignature<span class="type-signature"></span></h4>
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>128-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -758,7 +377,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line81">line 81</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line56">line 56</a>
     </li></ul></dd>
     
 
@@ -768,7 +387,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://tools.ietf.org/html/rfc4880#ref-BLOWFISH">BLOWFISH</a></li>
+            <li><a href="module-packet.OnePassSignature.html">module:packet.OnePassSignature</a></li>
         </ul>
     </dd>
     
@@ -781,108 +400,13 @@
 
 
 
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
         
             
-
-    
-
-    
-    <h4 class="name" id=".cast5"><span class="type-signature">(static) </span>cast5<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>CAST-128 Block Cipher (ID 3)</p>
-</div>
+<h4 class="name" id=".PublicKey"><span class="type-signature">(static) </span>PublicKey<span class="type-signature"></span></h4>
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>128-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -918,7 +442,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line65">line 65</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line36">line 36</a>
     </li></ul></dd>
     
 
@@ -928,7 +452,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://tools.ietf.org/html/rfc2144">The CAST-128 Encryption Algorithm</a></li>
+            <li><a href="module-packet.PublicKey.html">module:packet.PublicKey</a></li>
         </ul>
     </dd>
     
@@ -941,55 +465,9 @@
 
 
 
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
         
             
-
-    
-
-    
-    <h4 class="name" id=".idea"><span class="type-signature">(static) </span>idea<span class="signature">()</span><span class="type-signature"></span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Not implemented</p>
-</div>
-
-
-
+<h4 class="name" id=".PublicKeyEncryptedSessionKey"><span class="type-signature">(static) </span>PublicKeyEncryptedSessionKey<span class="type-signature"></span></h4>
 
 
 
@@ -1029,157 +507,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line87">line 87</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-<h5>Throws:</h5>
-
-        
-
-    <div class="param-desc">
-    
-        
-<span class="param-type">Error</span>
-
-
-    
-    </div>
-
-
-    
-
-
-
-
-
-
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id=".tripledes"><span class="type-signature">(static) </span>tripledes<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Triple DES Block Cipher (ID 2)</p>
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>192-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line57">line 57</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -1189,7 +517,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-67r2.pdf">NIST SP 800-67</a></li>
+            <li><a href="module-packet.PublicKeyEncryptedSessionKey.html">module:packet.PublicKeyEncryptedSessionKey</a></li>
         </ul>
     </dd>
     
@@ -1202,108 +530,13 @@
 
 
 
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
-        
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
-
-
-
-
-
         
             
-
-    
-
-    
-    <h4 class="name" id=".twofish"><span class="type-signature">(static) </span>twofish<span class="signature">(key)</span><span class="type-signature"> &rarr; {Object}</span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    <p>Twofish Block Cipher (ID 10)</p>
-</div>
+<h4 class="name" id=".PublicSubkey"><span class="type-signature">(static) </span>PublicSubkey<span class="type-signature"></span></h4>
 
 
 
 
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>key</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>256-bit key</p></td>
-        </tr>
-
-    
-    </tbody>
-</table>
 
 
 
@@ -1339,7 +572,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_cipher_index.js.html">crypto/cipher/index.js</a>, <a href="crypto_cipher_index.js.html#line73">line 73</a>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line48">line 48</a>
     </li></ul></dd>
     
 
@@ -1349,7 +582,7 @@
     <dt class="tag-see">See:</dt>
     <dd class="tag-see">
         <ul>
-            <li><a href="https://tools.ietf.org/html/rfc4880#ref-TWOFISH">TWOFISH</a></li>
+            <li><a href="module-packet.PublicSubkey.html">module:packet.PublicSubkey</a></li>
         </ul>
     </dd>
     
@@ -1362,37 +595,659 @@
 
 
 
-
-
-
-
-
-
-
-<h5>Returns:</h5>
-
         
+            
+<h4 class="name" id=".SecretKey"><span class="type-signature">(static) </span>SecretKey<span class="type-signature"></span></h4>
 
 
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
 
 
-    </dd>
-</dl>
+
+
+
+
+
+
+<dl class="details">
 
     
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line60">line 60</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.SecretKey.html">module:packet.SecretKey</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
 
 
 
 
         
+            
+<h4 class="name" id=".SecretSubkey"><span class="type-signature">(static) </span>SecretSubkey<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line68">line 68</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.SecretSubkey.html">module:packet.SecretSubkey</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".Signature"><span class="type-signature">(static) </span>Signature<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line72">line 72</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.Signature.html">module:packet.Signature</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".SymEncryptedAEADProtected"><span class="type-signature">(static) </span>SymEncryptedAEADProtected<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line20">line 20</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.SymEncryptedAEADProtected.html">module:packet.SymEncryptedAEADProtected</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".SymEncryptedIntegrityProtected"><span class="type-signature">(static) </span>SymEncryptedIntegrityProtected<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line16">line 16</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.SymEncryptedIntegrityProtected.html">module:packet.SymEncryptedIntegrityProtected</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".SymEncryptedSessionKey"><span class="type-signature">(static) </span>SymEncryptedSessionKey<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line28">line 28</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.SymEncryptedSessionKey.html">module:packet.SymEncryptedSessionKey</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".SymmetricallyEncrypted"><span class="type-signature">(static) </span>SymmetricallyEncrypted<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line40">line 40</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.SymmetricallyEncrypted.html">module:packet.SymmetricallyEncrypted</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".Trust"><span class="type-signature">(static) </span>Trust<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line76">line 76</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.Trust.html">module:packet.Trust</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".UserAttribute"><span class="type-signature">(static) </span>UserAttribute<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line52">line 52</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.UserAttribute.html">module:packet.UserAttribute</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id=".Userid"><span class="type-signature">(static) </span>Userid<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="packet_all_packets.js.html">packet/all_packets.js</a>, <a href="packet_all_packets.js.html#line64">line 64</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li><a href="module-packet.Userid.html">module:packet.Userid</a></li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+    
+
     
 
     
@@ -1414,7 +1269,7 @@
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Mar 13 2018 23:35:48 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Mar 13 2018 23:35:49 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>

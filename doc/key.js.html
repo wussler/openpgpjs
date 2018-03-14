@@ -64,9 +64,8 @@ import util from './util';
  * @class
  * @classdesc Class that represents an OpenPGP key. Must contain a primary key.
  * Can contain additional subkeys, signatures, user ids, user attributes.
- * @param  {module:packet/packetlist} packetlist The packets that form this key
+ * @param  {module:packet.List} packetlist The packets that form this key
  */
-
 export function Key(packetlist) {
   if (!(this instanceof Key)) {
     return new Key(packetlist);
@@ -85,7 +84,7 @@ export function Key(packetlist) {
 
 /**
  * Transforms packetlist to structured key data
- * @param  {module:packet/packetlist} packetlist The packets that form a key
+ * @param  {module:packet.List} packetlist The packets that form a key
  */
 Key.prototype.packetlist2structure = function(packetlist) {
   let user;
@@ -160,7 +159,7 @@ Key.prototype.packetlist2structure = function(packetlist) {
 
 /**
  * Transforms structured key data to packetlist
- * @returns {module:packet/packetlist} The packets that form a key
+ * @returns {module:packet.List} The packets that form a key
  */
 Key.prototype.toPacketlist = function() {
   const packetlist = new packet.List();
@@ -176,7 +175,7 @@ Key.prototype.toPacketlist = function() {
  * Returns packetlist containing all public or private subkey packets matching keyId;
  * If keyId is not present, returns all subkey packets.
  * @param  {type/keyid} keyId
- * @returns {module:packet/packetlist}
+ * @returns {module:packet.List}
  */
 Key.prototype.getSubkeyPackets = function(keyId=null) {
   const packets = new packet.List();
@@ -192,7 +191,7 @@ Key.prototype.getSubkeyPackets = function(keyId=null) {
  * Returns a packetlist containing all public or private key packets matching keyId.
  * If keyId is not present, returns all key packets starting with the primary key.
  * @param  {type/keyid} keyId
- * @returns {module:packet/packetlist}
+ * @returns {module:packet.List}
  */
 Key.prototype.getKeyPackets = function(keyId=null) {
   const packets = new packet.List();
@@ -239,7 +238,7 @@ Key.prototype.isPrivate = function() {
 
 /**
  * Returns key as public key (shallow copy)
- * @returns {module:key~Key} new public Key
+ * @returns {module:key.Key} new public Key
  */
 Key.prototype.toPublic = function() {
   const packetlist = new packet.List();
@@ -291,25 +290,27 @@ function isValidSigningKeyPacket(keyPacket, signature, date=new Date()) {
  * Returns first key packet or key packet by given keyId that is available for signing and verification
  * @param  {module:type/keyid} keyId, optional
  * @param  {Date} date use the given date for verification instead of the current time
- * @returns {Promise&lt;module:packet/secret_subkey|
-                     module:packet/secret_key|null>} key packet or null if no signing key has been found
+ * @returns {Promise&lt;module:packet.SecretSubkey|
+ *                   module:packet.SecretKey|null>} key packet or null if no signing key has been found
  * @async
  */
 Key.prototype.getSigningKeyPacket = async function (keyId=null, date=new Date()) {
   const primaryKey = this.primaryKey;
-  const primaryUser = await this.getPrimaryUser(date);
-  if (primaryUser &amp;&amp; (!keyId || primaryKey.getKeyId().equals(keyId)) &amp;&amp;
-      isValidSigningKeyPacket(primaryKey, primaryUser.selfCertification, date) &amp;&amp;
-      await this.verifyPrimaryKey(date)) {
-    return primaryKey;
-  }
-  for (let i = 0; i &lt; this.subKeys.length; i++) {
-    if (!keyId || this.subKeys[i].subKey.getKeyId().equals(keyId)) {
-      // eslint-disable-next-line no-await-in-loop
-      await this.subKeys[i].verify(primaryKey, date);
-      for (let j = 0; j &lt; this.subKeys[i].bindingSignatures.length; j++) {
-        if (isValidSigningKeyPacket(this.subKeys[i].subKey, this.subKeys[i].bindingSignatures[j], date)) {
-          return this.subKeys[i].subKey;
+  if (await this.verifyPrimaryKey(date) === enums.keyStatus.valid) {
+    const primaryUser = await this.getPrimaryUser(date);
+    if (primaryUser &amp;&amp; (!keyId || primaryKey.getKeyId().equals(keyId)) &amp;&amp;
+        isValidSigningKeyPacket(primaryKey, primaryUser.selfCertification, date)) {
+      return primaryKey;
+    }
+    for (let i = 0; i &lt; this.subKeys.length; i++) {
+      if (!keyId || this.subKeys[i].subKey.getKeyId().equals(keyId)) {
+        // eslint-disable-next-line no-await-in-loop
+        if (await this.subKeys[i].verify(primaryKey, date) === enums.keyStatus.valid) {
+          for (let j = 0; j &lt; this.subKeys[i].bindingSignatures.length; j++) {
+            if (isValidSigningKeyPacket(this.subKeys[i].subKey, this.subKeys[i].bindingSignatures[j], date)) {
+              return this.subKeys[i].subKey;
+            }
+          }
         }
       }
     }
@@ -334,33 +335,35 @@ function isValidEncryptionKeyPacket(keyPacket, signature, date=new Date()) {
  * Returns first key packet or key packet by given keyId that is available for encryption or decryption
  * @param  {module:type/keyid} keyId, optional
  * @param  {Date}              date, optional
- * @returns {Promise&lt;module:packet/public_subkey|
- *                   module:packet/secret_subkey|
- *                   module:packet/secret_key|
- *                   module:packet/public_key|null>} key packet or null if no encryption key has been found
+ * @returns {Promise&lt;module:packet.PublicSubkey|
+ *                   module:packet.SecretSubkey|
+ *                   module:packet.SecretKey|
+ *                   module:packet.PublicKey|null>} key packet or null if no encryption key has been found
  * @async
  */
 Key.prototype.getEncryptionKeyPacket = async function(keyId, date=new Date()) {
   const primaryKey = this.primaryKey;
-  // V4: by convention subkeys are preferred for encryption service
-  // V3: keys MUST NOT have subkeys
-  for (let i = 0; i &lt; this.subKeys.length; i++) {
-    if (!keyId || this.subKeys[i].subKey.getKeyId().equals(keyId)) {
-      // eslint-disable-next-line no-await-in-loop
-      await this.subKeys[i].verify(primaryKey, date);
-      for (let j = 0; j &lt; this.subKeys[i].bindingSignatures.length; j++) {
-        if (isValidEncryptionKeyPacket(this.subKeys[i].subKey, this.subKeys[i].bindingSignatures[j], date)) {
-          return this.subKeys[i].subKey;
+  if (await this.verifyPrimaryKey(date) === enums.keyStatus.valid) {
+    // V4: by convention subkeys are preferred for encryption service
+    // V3: keys MUST NOT have subkeys
+    for (let i = 0; i &lt; this.subKeys.length; i++) {
+      if (!keyId || this.subKeys[i].subKey.getKeyId().equals(keyId)) {
+        // eslint-disable-next-line no-await-in-loop
+        if (await this.subKeys[i].verify(primaryKey, date) === enums.keyStatus.valid) {
+          for (let j = 0; j &lt; this.subKeys[i].bindingSignatures.length; j++) {
+            if (isValidEncryptionKeyPacket(this.subKeys[i].subKey, this.subKeys[i].bindingSignatures[j], date)) {
+              return this.subKeys[i].subKey;
+            }
+          }
         }
       }
     }
-  }
-  // if no valid subkey for encryption, evaluate primary key
-  const primaryUser = await this.getPrimaryUser(date);
-  if (primaryUser &amp;&amp; (!keyId || primaryKey.getKeyId().equals(keyId)) &amp;&amp;
-      isValidEncryptionKeyPacket(primaryKey, primaryUser.selfCertification, date) &amp;&amp;
-      await this.verifyPrimaryKey(date)) {
-    return primaryKey;
+    // if no valid subkey for encryption, evaluate primary key
+    const primaryUser = await this.getPrimaryUser(date);
+    if (primaryUser &amp;&amp; (!keyId || primaryKey.getKeyId().equals(keyId)) &amp;&amp;
+        isValidEncryptionKeyPacket(primaryKey, primaryUser.selfCertification, date)) {
+      return primaryKey;
+    }
   }
   return null;
 };
@@ -369,7 +372,7 @@ Key.prototype.getEncryptionKeyPacket = async function(keyId, date=new Date()) {
  * Encrypts all secret key and subkey packets matching keyId
  * @param  {module:type/keyid} keyId
  * @param  {String} passphrase
- * @returns {Promise&lt;Array&lt;module:packet/secret_key|module:packet/secret_subkey>>}
+ * @returns {Promise&lt;Array&lt;module:packet.SecretKey|module:packet.SecretSubkey>>}
  * @async
  */
 Key.prototype.encrypt = async function(passphrase, keyId=null) {
@@ -404,12 +407,12 @@ Key.prototype.decrypt = async function(passphrase, keyId=null) {
 
 /**
  * Checks if a signature on a key is revoked
- * @param  {module:packet/secret_key|
- * @param  {module:packet/signature}  signature    The signature to verify
- * @param  {module:packet/public_subkey|
- *          module:packet/secret_subkey|
- *          module:packet/public_key|
- *          module:packet/secret_key} key, optional The key to verify the signature
+ * @param  {module:packet.SecretKey|
+ * @param  {module:packet.Signature}  signature    The signature to verify
+ * @param  {module:packet.PublicSubkey|
+ *          module:packet.SecretSubkey|
+ *          module:packet.PublicKey|
+ *          module:packet.SecretKey} key, optional The key to verify the signature
  * @param  {Date}                     date          Use the given date instead of the current time
  * @returns {Promise&lt;Boolean>}                      True if the certificate is revoked
  * @async
@@ -418,33 +421,6 @@ Key.prototype.isRevoked = async function(signature, key, date=new Date()) {
   return isDataRevoked(
     this.primaryKey, { key: this.primaryKey }, this.revocationSignatures, signature, key, date
   );
-};
-
-/**
- * Returns a packetlist containing all verified public or private key packets matching keyId.
- * If keyId is not present, returns all verified key packets starting with the primary key.
- * Verification is in the context of given date.
- * @param  {type/keyid} keyId
- * @param  {Date}       date  Use the given date instead of the current time
- * @returns {Promise&lt;module:packet/packetlist>}
- * @async
- */
-Key.prototype.verifyKeyPackets = async function(keyId=null, date=new Date()) {
-  const packets = new packet.List();
-  const { primaryKey } = this;
-  if (await this.verifyPrimaryKey(date)) {
-    if (!keyId || primaryKey.getKeyId().equals(keyId)) {
-      packets.push(primaryKey);
-    }
-  }
-  await Promise.all(this.subKeys.map(async subKey => {
-    if (!keyId || subKey.subKey.getKeyId().equals(keyId)) {
-      if (await subKey.verify(primaryKey, date)) {
-        packets.push(subKey.subKey);
-      }
-    }
-  }));
-  return packets;
 };
 
 /**
@@ -502,8 +478,8 @@ Key.prototype.getExpirationTime = async function() {
  * - if multiple primary users exist, returns the one with the latest self signature
  * - otherwise, returns the user with the latest self signature
  * @param  {Date} date use the given date for verification instead of the current time
- * @returns {Promise&lt;{user: Array&lt;module:packet/User>,
- *                    selfCertification: Array&lt;module:packet/signature>}|undefined>} The primary user and the self signature
+ * @returns {Promise&lt;{user: Array&lt;module:key.User>,
+ *                    selfCertification: Array&lt;module:packet.Signature>}>} The primary user and the self signature
  * @async
  */
 Key.prototype.getPrimaryUser = async function(date=new Date()) {
@@ -558,7 +534,7 @@ Key.prototype.getPrimaryUser = async function(date=new Date()) {
  *
  * If the specified key is a private key and the destination key is public,
  * the destination key is transformed to a private key.
- * @param  {module:key~Key} key Source key to merge
+ * @param  {module:key.Key} key Source key to merge
  */
 Key.prototype.update = async function(key) {
   const that = this;
@@ -651,8 +627,8 @@ Key.prototype.revoke = function() {
 
 /**
  * Signs primary user of key
- * @param  {Array&lt;module:key~Key>} privateKey decrypted private keys for signing
- * @returns {Promise&lt;module:key~Key>} new public key with new certificate signature
+ * @param  {Array&lt;module:key.Key>} privateKey decrypted private keys for signing
+ * @returns {Promise&lt;module:key.Key>} new public key with new certificate signature
  * @async
  */
 Key.prototype.signPrimaryUser = async function(privateKeys) {
@@ -668,8 +644,8 @@ Key.prototype.signPrimaryUser = async function(privateKeys) {
 
 /**
  * Signs all users of key
- * @param  {Array&lt;module:key~Key>} privateKeys decrypted private keys for signing
- * @returns {Promise&lt;module:key~Key>} new public key with new certificate signature
+ * @param  {Array&lt;module:key.Key>} privateKeys decrypted private keys for signing
+ * @returns {Promise&lt;module:key.Key>} new public key with new certificate signature
  * @async
  */
 Key.prototype.signAllUsers = async function(privateKeys) {
@@ -685,7 +661,7 @@ Key.prototype.signAllUsers = async function(privateKeys) {
  * Verifies primary user of key
  * - if no arguments are given, verifies the self certificates;
  * - otherwise, verifies all certificates signed with given keys.
- * @param  {Array&lt;module:key~Key>} keys array of keys to verify certificate signatures
+ * @param  {Array&lt;module:key.Key>} keys array of keys to verify certificate signatures
  * @returns {Promise&lt;Array&lt;{keyid: module:type/keyid,
  *                          valid: Boolean}>>}    List of signer's keyid and validity of signature
  * @async
@@ -705,7 +681,7 @@ Key.prototype.verifyPrimaryUser = async function(keys) {
  * Verifies all users of key
  * - if no arguments are given, verifies the self certificates;
  * - otherwise, verifies all certificates signed with given keys.
- * @param  {Array&lt;module:key~Key>} keys array of keys to verify certificate signatures
+ * @param  {Array&lt;module:key.Key>} keys array of keys to verify certificate signatures
  * @returns {Promise&lt;Array&lt;{userid: String,
  *                          keyid: module:type/keyid,
  *                          valid: Boolean}>>} list of userid, signer's keyid and validity of signature
@@ -745,7 +721,7 @@ function User(userPacket) {
 
 /**
  * Transforms structured user data to packetlist
- * @returns {module:packet/packetlist}
+ * @returns {module:packet.List}
  */
 User.prototype.toPacketlist = function() {
   const packetlist = new packet.List();
@@ -758,10 +734,10 @@ User.prototype.toPacketlist = function() {
 
 /**
  * Signs user
- * @param  {module:packet/secret_key|
- *          module:packet/public_key} primaryKey  The primary key packet
- * @param  {Array&lt;module:key~Key>}    privateKeys Decrypted private keys for signing
- * @returns {Promise&lt;module:key~Key>}             New user with new certificate signatures
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey  The primary key packet
+ * @param  {Array&lt;module:key.Key>}    privateKeys Decrypted private keys for signing
+ * @returns {Promise&lt;module:key.Key>}             New user with new certificate signatures
  * @async
  */
 User.prototype.sign = async function(primaryKey, privateKeys) {
@@ -798,13 +774,13 @@ User.prototype.sign = async function(primaryKey, privateKeys) {
 
 /**
  * Checks if a given certificate of the user is revoked
- * @param  {module:packet/secret_key|
- *          module:packet/public_key} primaryKey    The primary key packet
- * @param  {module:packet/signature}  certificate   The certificate to verify
- * @param  {module:packet/public_subkey|
- *          module:packet/secret_subkey|
- *          module:packet/public_key|
- *          module:packet/secret_key} key, optional The key to verify the signature
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey    The primary key packet
+ * @param  {module:packet.Signature}  certificate   The certificate to verify
+ * @param  {module:packet.PublicSubkey|
+ *          module:packet.SecretSubkey|
+ *          module:packet.PublicKey|
+ *          module:packet.SecretKey} key, optional The key to verify the signature
  * @param  {Date}                     date          Use the given date instead of the current time
  * @returns {Promise&lt;Boolean>}                      True if the certificate is revoked
  * @async
@@ -820,10 +796,10 @@ User.prototype.isRevoked = async function(primaryKey, certificate, key, date=new
 
 /**
  * Verifies the user certificate
- * @param  {module:packet/secret_key|
-            module:packet/public_key} primaryKey  The primary key packet
- * @param  {module:packet/signature}  certificate A certificate of this user
- * @param  {Array&lt;module:key~Key>}    keys        Array of keys to verify certificate signatures
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey  The primary key packet
+ * @param  {module:packet.Signature}  certificate A certificate of this user
+ * @param  {Array&lt;module:key.Key>}    keys        Array of keys to verify certificate signatures
  * @param  {Date}                     date        Use the given date instead of the current time
  * @returns {Promise&lt;module:enums.keyStatus>}     status of the certificate
  * @async
@@ -851,9 +827,9 @@ User.prototype.verifyCertificate = async function(primaryKey, certificate, keys,
 
 /**
  * Verifies all user certificates
- * @param  {module:packet/secret_key|
- *          module:packet/public_key} primaryKey The primary key packet
- * @param  {Array&lt;module:key~Key>}    keys       Array of keys to verify certificate signatures
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey The primary key packet
+ * @param  {Array&lt;module:key.Key>}    keys       Array of keys to verify certificate signatures
  * @returns {Promise&lt;Array&lt;{keyid: module:type/keyid,
  *                          valid: Boolean}>>}   List of signer's keyid and validity of signature
  * @async
@@ -873,8 +849,8 @@ User.prototype.verifyAllCertifications = async function(primaryKey, keys) {
 /**
  * Verify User. Checks for existence of self signatures, revocation signatures
  * and validity of self signature
- * @param  {module:packet/secret_key|
- *          module:packet/public_key} primaryKey The primary key packet
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey The primary key packet
  * @returns {Promise&lt;module:enums.keyStatus>}    Status of user
  * @async
  */
@@ -904,9 +880,9 @@ User.prototype.verify = async function(primaryKey) {
 
 /**
  * Update user with new components from specified user
- * @param  {module:key~User}             user       Source user to merge
- * @param  {module:packet/secret_key|
-            module:packet/secret_subkey} primaryKey primary key used for validation
+ * @param  {module:key.User}             user       Source user to merge
+ * @param  {module:packet.SecretKey|
+ *          module:packet.SecretSubkey} primaryKey primary key used for validation
  */
 User.prototype.update = async function(user, primaryKey) {
   const dataToVerify = { userid: this.userId || this.userAttribute, key: primaryKey };
@@ -937,7 +913,7 @@ function SubKey(subKeyPacket) {
 
 /**
  * Transforms structured subkey data to packetlist
- * @returns {module:packet/packetlist}
+ * @returns {module:packet.List}
  */
 SubKey.prototype.toPacketlist = function() {
   const packetlist = new packet.List();
@@ -949,13 +925,13 @@ SubKey.prototype.toPacketlist = function() {
 
 /**
  * Checks if a binding signature of a subkey is revoked
- * @param  {module:packet/secret_key|
- *          module:packet/public_key} primaryKey    The primary key packet
- * @param  {module:packet/signature}  signature     The binding signature to verify
- * @param  {module:packet/public_subkey|
- *          module:packet/secret_subkey|
- *          module:packet/public_key|
- *          module:packet/secret_key} key, optional The key to verify the signature
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey    The primary key packet
+ * @param  {module:packet.Signature}  signature     The binding signature to verify
+ * @param  {module:packet.PublicSubkey|
+ *          module:packet.SecretSubkey|
+ *          module:packet.PublicKey|
+ *          module:packet.SecretKey} key, optional The key to verify the signature
  * @param  {Date}                     date          Use the given date instead of the current time
  * @returns {Promise&lt;Boolean>}                      True if the binding signature is revoked
  * @async
@@ -972,8 +948,8 @@ SubKey.prototype.isRevoked = async function(primaryKey, signature, key, date=new
 /**
  * Verify subkey. Checks for revocation signatures, expiration time
  * and valid binding signature
- * @param  {module:packet/secret_key|
- *          module:packet/public_key} primaryKey The primary key packet
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey} primaryKey The primary key packet
  * @param  {Date}                     date       Use the given date instead of the current time
  * @returns {Promise&lt;module:enums.keyStatus>}    The status of the subkey
  * @async
@@ -1028,9 +1004,9 @@ SubKey.prototype.getExpirationTime = function() {
 
 /**
  * Update subkey with new components from specified subkey
- * @param  {module:key~SubKey}           subKey     Source subkey to merge
- * @param  {module:packet/secret_key|
-            module:packet/secret_subkey} primaryKey primary key used for validation
+ * @param  {module:key.SubKey}           subKey     Source subkey to merge
+ * @param  {module:packet.SecretKey|
+            module:packet.SecretSubkey} primaryKey primary key used for validation
  */
 SubKey.prototype.update = async function(subKey, primaryKey) {
   if (await subKey.verify(primaryKey) === enums.keyStatus.invalid) {
@@ -1070,7 +1046,7 @@ SubKey.prototype.update = async function(subKey, primaryKey) {
 /**
  * Reads an unarmored OpenPGP key list and returns one or multiple key objects
  * @param {Uint8Array} data to be parsed
- * @returns {{keys: Array&lt;module:key~Key>,
+ * @returns {{keys: Array&lt;module:key.Key>,
  *            err: (Array&lt;Error>|null)}} result object with key and error arrays
  * @static
  */
@@ -1104,7 +1080,7 @@ export function read(data) {
 /**
  * Reads an OpenPGP armored text and returns one or multiple key objects
  * @param {String} armoredText text to be parsed
- * @returns {{keys: Array&lt;module:key~Key>,
+ * @returns {{keys: Array&lt;module:key.Key>,
  *            err: (Array&lt;Error>|null)}} result object with key and error arrays
  * @static
  */
@@ -1125,15 +1101,18 @@ export function readArmored(armoredText) {
 /**
  * Generates a new OpenPGP key. Supports RSA and ECC keys.
  * Primary and subkey will be of same type.
- * @param {module:enums.publicKey} [options.keyType=module:enums.publicKey.rsa_encrypt_sign]    to indicate what type of key to make.
+ * @param {module:enums.publicKey} [options.keyType=module:enums.publicKey.rsa_encrypt_sign]
+ *                             To indicate what type of key to make.
  *                             RSA is 1. See {@link https://tools.ietf.org/html/rfc4880#section-9.1}
  * @param {Integer} options.numBits    number of bits for the key creation.
- * @param {String|Array&lt;String>}  options.userIds    assumes already in form of "User Name &lt;username@email.com>"
-                                                     If array is used, the first userId is set as primary user Id
+ * @param {String|Array&lt;String>}  options.userIds
+ *                             Assumes already in form of "User Name &lt;username@email.com>"
+ *                             If array is used, the first userId is set as primary user Id
  * @param {String}  options.passphrase The passphrase used to encrypt the resulting private key
  * @param {Boolean} [options.unlocked=false]    The secret part of the generated key is unlocked
- * @param {Number} [options.keyExpirationTime=0] The number of seconds after the key creation time that the key expires
- * @returns {Promise&lt;module:key~Key>}
+ * @param {Number} [options.keyExpirationTime=0]
+ *                             The number of seconds after the key creation time that the key expires
+ * @returns {Promise&lt;module:key.Key>}
  * @async
  * @static
  */
@@ -1202,14 +1181,16 @@ export function generate(options) {
 
 /**
  * Reformats and signs an OpenPGP with a given User ID. Currently only supports RSA keys.
- * @param {module:key~Key} options.privateKey   The private key to reformat
+ * @param {module:key.Key} options.privateKey   The private key to reformat
  * @param {module:enums.publicKey} [options.keyType=module:enums.publicKey.rsa_encrypt_sign]
- * @param {String|Array&lt;String>}  options.userIds    assumes already in form of "User Name &lt;username@email.com>"
-                                                     If array is used, the first userId is set as primary user Id
+ * @param {String|Array&lt;String>}  options.userIds
+ *                             Assumes already in form of "User Name &lt;username@email.com>"
+ *                             If array is used, the first userId is set as primary user Id
  * @param {String}  options.passphrase The passphrase used to encrypt the resulting private key
  * @param {Boolean} [options.unlocked=false]    The secret part of the generated key is unlocked
- * @param {Number} [options.keyExpirationTime=0] The number of seconds after the key creation time that the key expires
- * @returns {Promise&lt;module:key~Key>}
+ * @param {Number} [options.keyExpirationTime=0]
+ *                             The number of seconds after the key creation time that the key expires
+ * @returns {Promise&lt;module:key.Key>}
  * @async
  * @static
  */
@@ -1345,15 +1326,15 @@ async function wrapKeyObject(secretKeyPacket, secretSubkeyPacket, options) {
 
 /**
  * Checks if a given certificate or binding signature is revoked
- * @param  {module:packet/secret_key|
- *          module:packet/public_key}       primaryKey   The primary key packet
+ * @param  {module:packet.SecretKey|
+ *          module:packet.PublicKey}       primaryKey   The primary key packet
  * @param  {Object}                         dataToVerify The data to check
- * @param  {Array&lt;module:packet/signature>} revocations  The revocation signatures to check
- * @param  {module:packet/signature}        signature    The certificate or signature to check
- * @param  {module:packet/public_subkey|
- *          module:packet/secret_subkey|
- *          module:packet/public_key|
- *          module:packet/secret_key} key, optional The key packet to check the signature
+ * @param  {Array&lt;module:packet.Signature>} revocations  The revocation signatures to check
+ * @param  {module:packet.Signature}        signature    The certificate or signature to check
+ * @param  {module:packet.PublicSubkey|
+ *          module:packet.SecretSubkey|
+ *          module:packet.PublicKey|
+ *          module:packet.SecretKey} key, optional The key packet to check the signature
  * @param  {Date}                     date          Use the given date instead of the current time
  * @returns {Promise&lt;Boolean>}                      True if the signature revokes the data
  * @async
@@ -1440,7 +1421,7 @@ export async function getPreferredHashAlgo(key) {
 
 /**
  * Returns the preferred symmetric algorithm for a set of keys
- * @param  {Array&lt;module:key~Key>} keys Set of keys
+ * @param  {Array&lt;module:key.Key>} keys Set of keys
  * @returns {Promise&lt;module:enums.symmetric>}   Preferred symmetric algorithm
  * @async
  */
@@ -1481,13 +1462,13 @@ export async function getPreferredSymAlgo(keys) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Fri Mar 09 2018 08:18:04 GMT-0800 (PST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Mar 13 2018 23:35:48 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>
