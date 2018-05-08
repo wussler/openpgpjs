@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: packet/userid.js</title>
+    <title>JSDoc: Source: crypto/eax.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: packet/userid.js</h1>
+    <h1 class="page-title">Source: crypto/eax.js</h1>
 
     
 
@@ -26,8 +26,8 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>// GPG4Browsers - An OpenPGP implementation in javascript
-// Copyright (C) 2011 Recurity Labs GmbH
+            <pre class="prettyprint source linenums"><code>// OpenPGP.js - An OpenPGP implementation in javascript
+// Copyright (C) 2018 ProtonTech AG
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -44,75 +44,156 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /**
- * @requires enums
+ * @fileoverview This module implements AES-EAX en/decryption on top of
+ * native AES-CTR using either the WebCrypto API or Node.js' crypto API.
+ * @requires asmcrypto.js
+ * @requires crypto/cmac
  * @requires util
+ * @module crypto/eax
  */
 
-import enums from '../enums';
+import { AES_CTR } from 'asmcrypto.js/src/aes/ctr/exports';
+import CMAC from './cmac';
 import util from '../util';
 
-/**
- * Implementation of the User ID Packet (Tag 13)
- *
- * A User ID packet consists of UTF-8 text that is intended to represent
- * the name and email address of the key holder.  By convention, it
- * includes an RFC 2822 [RFC2822] mail name-addr, but there are no
- * restrictions on its content.  The packet length in the header
- * specifies the length of the User ID.
- * @memberof module:packet
- * @constructor
- */
-function Userid() {
-  this.tag = enums.packet.userid;
-  /** A string containing the user id. Usually in the form
-   * John Doe &lt;john@example.com>
-   * @type {String}
-   */
-  this.userid = '';
+const webCrypto = util.getWebCrypto();
+const nodeCrypto = util.getNodeCrypto();
+const Buffer = util.getNodeBuffer();
 
-  this.name = '';
-  this.email = '';
-  this.comment = '';
+
+const blockLength = 16;
+const ivLength = blockLength;
+const tagLength = blockLength;
+
+const zero = new Uint8Array(blockLength);
+const one = new Uint8Array(blockLength); one[blockLength - 1] = 1;
+const two = new Uint8Array(blockLength); two[blockLength - 1] = 2;
+
+async function OMAC(key) {
+  const cmac = await CMAC(key);
+  return function(t, message) {
+    return cmac(util.concatUint8Array([t, message]));
+  };
 }
 
-/**
- * Parsing function for a user id packet (tag 13).
- * @param {Uint8Array} input payload of a tag 13 packet
- */
-Userid.prototype.read = function (bytes) {
-  this.parse(util.decode_utf8(util.Uint8Array_to_str(bytes)));
-};
-
-/**
- * Parse userid string, e.g. 'John Doe &lt;john@example.com>'
- */
-Userid.prototype.parse = function (userid) {
-  try {
-    Object.assign(this, util.parseUserId(userid));
-  } catch(e) {}
-  this.userid = userid;
-};
-
-/**
- * Creates a binary representation of the user id packet
- * @returns {Uint8Array} binary representation
- */
-Userid.prototype.write = function () {
-  return util.str_to_Uint8Array(util.encode_utf8(this.userid));
-};
-
-/**
- * Set userid string from object, e.g. { name:'Phil Zimmermann', email:'phil@openpgp.org' }
- */
-Userid.prototype.format = function (userid) {
-  if (util.isString(userid)) {
-    userid = util.parseUserId(userid);
+async function CTR(key) {
+  if (util.getWebCrypto() &amp;&amp; key.length !== 24) { // WebCrypto (no 192 bit support) see: https://www.chromium.org/blink/webcrypto#TOC-AES-support
+    key = await webCrypto.importKey('raw', key, { name: 'AES-CTR', length: key.length * 8 }, false, ['encrypt']);
+    return async function(pt, iv) {
+      const ct = await webCrypto.encrypt({ name: 'AES-CTR', counter: iv, length: blockLength * 8 }, key, pt);
+      return new Uint8Array(ct);
+    };
   }
-  Object.assign(this, userid);
-  this.userid = util.formatUserId(userid);
+  if (util.getNodeCrypto()) { // Node crypto library
+    key = new Buffer(key);
+    return async function(pt, iv) {
+      pt = new Buffer(pt);
+      iv = new Buffer(iv);
+      const en = new nodeCrypto.createCipheriv('aes-' + (key.length * 8) + '-ctr', key, iv);
+      const ct = Buffer.concat([en.update(pt), en.final()]);
+      return new Uint8Array(ct);
+    };
+  }
+  // asm.js fallback
+  return async function(pt, iv) {
+    return AES_CTR.encrypt(pt, key, iv);
+  };
+}
+
+
+/**
+ * Class to en/decrypt using EAX mode.
+ * @param  {String}     cipher      The symmetric cipher algorithm to use e.g. 'aes128'
+ * @param  {Uint8Array} key         The encryption key
+ */
+async function EAX(cipher, key) {
+  if (cipher.substr(0, 3) !== 'aes') {
+    throw new Error('EAX mode supports only AES cipher');
+  }
+
+  const [
+    omac,
+    ctr
+  ] = await Promise.all([
+    OMAC(key),
+    CTR(key)
+  ]);
+
+  return {
+    /**
+     * Encrypt plaintext input.
+     * @param  {Uint8Array} plaintext   The cleartext input to be encrypted
+     * @param  {Uint8Array} nonce       The nonce (16 bytes)
+     * @param  {Uint8Array} adata       Associated data to sign
+     * @returns {Promise&lt;Uint8Array>}    The ciphertext output
+     */
+    encrypt: async function(plaintext, nonce, adata) {
+      const [
+        omacNonce,
+        omacAdata
+      ] = await Promise.all([
+        omac(zero, nonce),
+        omac(one, adata)
+      ]);
+      const ciphered = await ctr(plaintext, omacNonce);
+      const omacCiphered = await omac(two, ciphered);
+      const tag = omacCiphered; // Assumes that omac(*).length === tagLength.
+      for (let i = 0; i &lt; tagLength; i++) {
+        tag[i] ^= omacAdata[i] ^ omacNonce[i];
+      }
+      return util.concatUint8Array([ciphered, tag]);
+    },
+
+    /**
+     * Decrypt ciphertext input.
+     * @param  {Uint8Array} ciphertext   The ciphertext input to be decrypted
+     * @param  {Uint8Array} nonce        The nonce (16 bytes)
+     * @param  {Uint8Array} adata        Associated data to verify
+     * @returns {Promise&lt;Uint8Array>}     The plaintext output
+     */
+    decrypt: async function(ciphertext, nonce, adata) {
+      if (ciphertext.length &lt; tagLength) throw new Error('Invalid EAX ciphertext');
+      const ciphered = ciphertext.subarray(0, -tagLength);
+      const ctTag = ciphertext.subarray(-tagLength);
+      const [
+        omacNonce,
+        omacAdata,
+        omacCiphered
+      ] = await Promise.all([
+        omac(zero, nonce),
+        omac(one, adata),
+        omac(two, ciphered)
+      ]);
+      const tag = omacCiphered; // Assumes that omac(*).length === tagLength.
+      for (let i = 0; i &lt; tagLength; i++) {
+        tag[i] ^= omacAdata[i] ^ omacNonce[i];
+      }
+      if (!util.equalsUint8Array(ctTag, tag)) throw new Error('Authentication tag mismatch');
+      const plaintext = await ctr(ciphered, omacNonce);
+      return plaintext;
+    }
+  };
+}
+
+
+/**
+ * Get EAX nonce as defined by {@link https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-04#section-5.16.1|RFC4880bis-04, section 5.16.1}.
+ * @param  {Uint8Array} iv           The initialization vector (16 bytes)
+ * @param  {Uint8Array} chunkIndex   The chunk index (8 bytes)
+ */
+EAX.getNonce = function(iv, chunkIndex) {
+  const nonce = iv.slice();
+  for (let i = 0; i &lt; chunkIndex.length; i++) {
+    nonce[8 + i] ^= chunkIndex[i];
+  }
+  return nonce;
 };
 
-export default Userid;
+EAX.blockLength = blockLength;
+EAX.ivLength = ivLength;
+EAX.tagLength = tagLength;
+
+export default EAX;
 </code></pre>
         </article>
     </section>

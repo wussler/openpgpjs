@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: type/oid.js</title>
+    <title>JSDoc: Source: crypto/ocb.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: type/oid.js</h1>
+    <h1 class="page-title">Source: crypto/ocb.js</h1>
 
     
 
@@ -27,7 +27,7 @@
     <section>
         <article>
             <pre class="prettyprint source linenums"><code>// OpenPGP.js - An OpenPGP implementation in javascript
-// Copyright (C) 2015-2016 Decentral
+// Copyright (C) 2018 ProtonTech AG
 //
 // This library is free software; you can redistribute it and/or
 // modify it under the terms of the GNU Lesser General Public
@@ -44,98 +44,262 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /**
- * Wrapper to an OID value
- *
- * {@link https://tools.ietf.org/html/rfc6637#section-11|RFC6637, section 11}:
- * The sequence of octets in the third column is the result of applying
- * the Distinguished Encoding Rules (DER) to the ASN.1 Object Identifier
- * with subsequent truncation.  The truncation removes the two fields of
- * encoded Object Identifier.  The first omitted field is one octet
- * representing the Object Identifier tag, and the second omitted field
- * is the length of the Object Identifier body.  For example, the
- * complete ASN.1 DER encoding for the NIST P-256 curve OID is "06 08 2A
- * 86 48 CE 3D 03 01 07", from which the first entry in the table above
- * is constructed by omitting the first two octets.  Only the truncated
- * sequence of octets is the valid representation of a curve OID.
+ * @fileoverview This module implements AES-OCB en/decryption.
+ * @requires crypto/cipher
  * @requires util
- * @requires enums
- * @module type/oid
+ * @module crypto/ocb
  */
 
+import ciphers from './cipher';
 import util from '../util';
-import enums from '../enums';
 
-/**
- * @constructor
- */
-function OID(oid) {
-  if (oid instanceof OID) {
-    this.oid = oid.oid;
-  } else if (util.isArray(oid) ||
-             util.isUint8Array(oid)) {
-    oid = new Uint8Array(oid);
-    if (oid[0] === 0x06) { // DER encoded oid byte array
-      if (oid[1] !== oid.length - 2) {
-        throw new Error('Length mismatch in DER encoded oid');
-      }
-      oid = oid.subarray(2);
-    }
-    this.oid = oid;
-  } else {
-    this.oid = '';
+
+const blockLength = 16;
+const ivLength = 15;
+
+// https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-04#section-5.16.2:
+// While OCB [RFC7253] allows the authentication tag length to be of any
+// number up to 128 bits long, this document requires a fixed
+// authentication tag length of 128 bits (16 octets) for simplicity.
+const tagLength = 16;
+
+
+function ntz(n) {
+  let ntz = 0;
+  for(let i = 1; (n &amp; i) === 0; i &lt;&lt;= 1) {
+    ntz++;
   }
+  return ntz;
 }
 
+function xorMut(S, T) {
+  for (let i = 0; i &lt; S.length; i++) {
+    S[i] ^= T[i];
+  }
+  return S;
+}
+
+function xor(S, T) {
+  return xorMut(S.slice(), T);
+}
+
+const zeroBlock = new Uint8Array(blockLength);
+const one = new Uint8Array([1]);
+
 /**
- * Method to read an OID object
- * @param  {Uint8Array}  input  Where to read the OID from
- * @returns {Number}             Number of read bytes
+ * Class to en/decrypt using OCB mode.
+ * @param  {String}     cipher      The symmetric cipher algorithm to use e.g. 'aes128'
+ * @param  {Uint8Array} key         The encryption key
  */
-OID.prototype.read = function (input) {
-  if (input.length >= 1) {
-    const length = input[0];
-    if (input.length >= 1+length) {
-      this.oid = input.subarray(1, 1+length);
-      return 1+this.oid.length;
+async function OCB(cipher, key) {
+
+  let maxNtz = 0;
+  let encipher;
+  let decipher;
+  let mask;
+
+  constructKeyVariables(cipher, key);
+
+  function constructKeyVariables(cipher, key) {
+    const aes = new ciphers[cipher](key);
+    encipher = aes.encrypt.bind(aes);
+    decipher = aes.decrypt.bind(aes);
+
+    const mask_x = encipher(zeroBlock);
+    const mask_$ = util.double(mask_x);
+    mask = [];
+    mask[0] = util.double(mask_$);
+
+
+    mask.x = mask_x;
+    mask.$ = mask_$;
+  }
+
+  function extendKeyVariables(text, adata) {
+    const newMaxNtz = util.nbits(Math.max(text.length, adata.length) / blockLength | 0) - 1;
+    for (let i = maxNtz + 1; i &lt;= newMaxNtz; i++) {
+      mask[i] = util.double(mask[i - 1]);
     }
+    maxNtz = newMaxNtz;
   }
-  throw new Error('Invalid oid');
-};
 
-/**
- * Serialize an OID object
- * @returns {Uint8Array} Array with the serialized value the OID
- */
-OID.prototype.write = function () {
-  return util.concatUint8Array([new Uint8Array([this.oid.length]), this.oid]);
-};
+  function hash(adata) {
+    if (!adata.length) {
+      // Fast path
+      return zeroBlock;
+    }
 
-/**
- * Serialize an OID object as a hex string
- * @returns {string} String with the hex value of the OID
- */
-OID.prototype.toHex = function() {
-  return util.Uint8Array_to_hex(this.oid);
-};
+    //
+    // Consider A as a sequence of 128-bit blocks
+    //
+    const m = adata.length / blockLength | 0;
 
-/**
- * If a known curve object identifier, return the canonical name of the curve
- * @returns {string} String with the canonical name of the curve
- */
-OID.prototype.getName = function() {
-  const hex = this.toHex();
-  if (enums.curve[hex]) {
-    return enums.write(enums.curve, hex);
-  } else {
-    throw new Error('Unknown curve object identifier.');
+    const offset = new Uint8Array(blockLength);
+    const sum = new Uint8Array(blockLength);
+    for (let i = 0; i &lt; m; i++) {
+      xorMut(offset, mask[ntz(i + 1)]);
+      xorMut(sum, encipher(xor(offset, adata)));
+      adata = adata.subarray(blockLength);
+    }
+
+    //
+    // Process any final partial block; compute final hash value
+    //
+    if (adata.length) {
+      xorMut(offset, mask.x);
+
+      const cipherInput = new Uint8Array(blockLength);
+      cipherInput.set(adata, 0);
+      cipherInput[adata.length] = 0b10000000;
+      xorMut(cipherInput, offset);
+
+      xorMut(sum, encipher(cipherInput));
+    }
+
+    return sum;
   }
+
+  /**
+   * Encrypt/decrypt data.
+   * @param  {encipher|decipher} fn   Encryption/decryption block cipher function
+   * @param  {Uint8Array} text        The cleartext or ciphertext (without tag) input
+   * @param  {Uint8Array} nonce       The nonce (15 bytes)
+   * @param  {Uint8Array} adata       Associated data to sign
+   * @returns {Promise&lt;Uint8Array>}    The ciphertext or plaintext output, with tag appended in both cases
+   */
+  function crypt(fn, text, nonce, adata) {
+    //
+    // Consider P as a sequence of 128-bit blocks
+    //
+    const m = text.length / blockLength | 0;
+
+    //
+    // Key-dependent variables
+    //
+    extendKeyVariables(text, adata);
+
+    //
+    // Nonce-dependent and per-encryption variables
+    //
+    //    Nonce = num2str(TAGLEN mod 128,7) || zeros(120-bitlen(N)) || 1 || N
+    // Note: We assume here that tagLength mod 16 == 0.
+    const paddedNonce = util.concatUint8Array([zeroBlock.subarray(0, ivLength - nonce.length), one, nonce]);
+    //    bottom = str2num(Nonce[123..128])
+    const bottom = paddedNonce[blockLength - 1] &amp; 0b111111;
+    //    Ktop = ENCIPHER(K, Nonce[1..122] || zeros(6))
+    paddedNonce[blockLength - 1] &amp;= 0b11000000;
+    const kTop = encipher(paddedNonce);
+    //    Stretch = Ktop || (Ktop[1..64] xor Ktop[9..72])
+    const stretched = util.concatUint8Array([kTop, xor(kTop.subarray(0, 8), kTop.subarray(1, 9))]);
+    //    Offset_0 = Stretch[1+bottom..128+bottom]
+    const offset = util.shiftRight(stretched.subarray(0 + (bottom >> 3), 17 + (bottom >> 3)), 8 - (bottom &amp; 7)).subarray(1);
+    //    Checksum_0 = zeros(128)
+    const checksum = new Uint8Array(blockLength);
+
+    const ct = new Uint8Array(text.length + tagLength);
+
+    //
+    // Process any whole blocks
+    //
+    let i;
+    let pos = 0;
+    for (i = 0; i &lt; m; i++) {
+      // Offset_i = Offset_{i-1} xor L_{ntz(i)}
+      xorMut(offset, mask[ntz(i + 1)]);
+      // C_i = Offset_i xor ENCIPHER(K, P_i xor Offset_i)
+      // P_i = Offset_i xor DECIPHER(K, C_i xor Offset_i)
+      ct.set(xorMut(fn(xor(offset, text)), offset), pos);
+      // Checksum_i = Checksum_{i-1} xor P_i
+      xorMut(checksum, fn === encipher ? text : ct.subarray(pos));
+
+      text = text.subarray(blockLength);
+      pos += blockLength;
+    }
+
+    //
+    // Process any final partial block and compute raw tag
+    //
+    if (text.length) {
+      // Offset_* = Offset_m xor L_*
+      xorMut(offset, mask.x);
+      // Pad = ENCIPHER(K, Offset_*)
+      const padding = encipher(offset);
+      // C_* = P_* xor Pad[1..bitlen(P_*)]
+      ct.set(xor(text, padding), pos);
+
+      // Checksum_* = Checksum_m xor (P_* || 1 || new Uint8Array(127-bitlen(P_*)))
+      const xorInput = new Uint8Array(blockLength);
+      xorInput.set(fn === encipher ? text : ct.subarray(pos, -tagLength), 0);
+      xorInput[text.length] = 0b10000000;
+      xorMut(checksum, xorInput);
+      pos += text.length;
+    }
+    // Tag = ENCIPHER(K, Checksum_* xor Offset_* xor L_$) xor HASH(K,A)
+    const tag = xorMut(encipher(xorMut(xorMut(checksum, offset), mask.$)), hash(adata));
+
+    //
+    // Assemble ciphertext
+    //
+    // C = C_1 || C_2 || ... || C_m || C_* || Tag[1..TAGLEN]
+    ct.set(tag, pos);
+    return ct;
+  }
+
+
+  return {
+    /**
+     * Encrypt plaintext input.
+     * @param  {Uint8Array} plaintext   The cleartext input to be encrypted
+     * @param  {Uint8Array} nonce       The nonce (15 bytes)
+     * @param  {Uint8Array} adata       Associated data to sign
+     * @returns {Promise&lt;Uint8Array>}    The ciphertext output
+     */
+    encrypt: async function(plaintext, nonce, adata) {
+      return crypt(encipher, plaintext, nonce, adata);
+    },
+
+    /**
+     * Decrypt ciphertext input.
+     * @param  {Uint8Array} ciphertext  The ciphertext input to be decrypted
+     * @param  {Uint8Array} nonce       The nonce (15 bytes)
+     * @param  {Uint8Array} adata       Associated data to sign
+     * @returns {Promise&lt;Uint8Array>}    The ciphertext output
+     */
+    decrypt: async function(ciphertext, nonce, adata) {
+      if (ciphertext.length &lt; tagLength) throw new Error('Invalid OCB ciphertext');
+
+      const tag = ciphertext.subarray(-tagLength);
+      ciphertext = ciphertext.subarray(0, -tagLength);
+
+      const crypted = crypt(decipher, ciphertext, nonce, adata);
+      // if (Tag[1..TAGLEN] == T)
+      if (util.equalsUint8Array(tag, crypted.subarray(-tagLength))) {
+        return crypted.subarray(0, -tagLength);
+      }
+      throw new Error('Authentication tag mismatch');
+    }
+  };
+}
+
+
+/**
+ * Get OCB nonce as defined by {@link https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-04#section-5.16.2|RFC4880bis-04, section 5.16.2}.
+ * @param  {Uint8Array} iv           The initialization vector (15 bytes)
+ * @param  {Uint8Array} chunkIndex   The chunk index (8 bytes)
+ */
+OCB.getNonce = function(iv, chunkIndex) {
+  const nonce = iv.slice();
+  for (let i = 0; i &lt; chunkIndex.length; i++) {
+    nonce[7 + i] ^= chunkIndex[i];
+  }
+  return nonce;
 };
 
-OID.fromClone = function (clone) {
-  return new OID(clone.oid);
-};
+OCB.blockLength = blockLength;
+OCB.ivLength = ivLength;
+OCB.tagLength = tagLength;
 
-export default OID;
+export default OCB;
 </code></pre>
         </article>
     </section>

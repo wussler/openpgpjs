@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: type/kdf_params</title>
+    <title>JSDoc: Module: crypto/ocb</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: type/kdf_params</h1>
+    <h1 class="page-title">Module: crypto/ocb</h1>
 
     
 
@@ -38,12 +38,7 @@
     <div class="container-overview">
     
         
-            <div class="description"><p>Implementation of type KDF parameters</p>
-<p><a href="https://tools.ietf.org/html/rfc6637#section-7">RFC 6637 7</a>:
-A key derivation function (KDF) is necessary to implement the EC
-encryption.  The Concatenation Key Derivation Function (Approved
-Alternative 1) [NIST-SP800-56A] with the KDF hash function that is
-SHA2-256 [FIPS-180-3] or stronger is REQUIRED.</p></div>
+            <div class="description"><p>This module implements AES-OCB en/decryption.</p></div>
         
 
         
@@ -92,7 +87,7 @@ SHA2-256 [FIPS-180-3] or stronger is REQUIRED.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="type_kdf_params.js.html">type/kdf_params.js</a>, <a href="type_kdf_params.js.html#line18">line 18</a>
+        <a href="crypto_ocb.js.html">crypto/ocb.js</a>, <a href="crypto_ocb.js.html#line18">line 18</a>
     </li></ul></dd>
     
 
@@ -130,17 +125,151 @@ SHA2-256 [FIPS-180-3] or stronger is REQUIRED.</p></div>
         <h3 class="subsection-title">Requires</h3>
 
         <ul>
-            <li><a href="module-enums.html">module:enums</a></li>
+            <li><a href="module-crypto_cipher.html">module:crypto/cipher</a></li>
+        
+            <li><a href="module-util.html">module:util</a></li>
         </ul>
     
 
     
-        <h3 class="subsection-title">Classes</h3>
 
-        <dl>
-            <dt><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></dt>
-            <dd></dd>
-        </dl>
+    
+
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~decrypt"><span class="type-signature">(inner) </span>decrypt<span class="signature">(ciphertext, nonce, adata)</span><span class="type-signature"> &rarr; {Promise.&lt;Uint8Array>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Decrypt ciphertext input.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>ciphertext</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The ciphertext input to be decrypted</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>nonce</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The nonce (15 bytes)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>adata</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Associated data to sign</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
     
 
     
@@ -151,6 +280,435 @@ SHA2-256 [FIPS-180-3] or stronger is REQUIRED.</p></div>
 
     
 
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_ocb.js.html">crypto/ocb.js</a>, <a href="crypto_ocb.js.html#line240">line 240</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>The ciphertext output</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;Uint8Array></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~encrypt"><span class="type-signature">(inner) </span>encrypt<span class="signature">(plaintext, nonce, adata)</span><span class="type-signature"> &rarr; {Promise.&lt;Uint8Array>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Encrypt plaintext input.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>plaintext</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The cleartext input to be encrypted</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>nonce</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The nonce (15 bytes)</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>adata</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Associated data to sign</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_ocb.js.html">crypto/ocb.js</a>, <a href="crypto_ocb.js.html#line229">line 229</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>The ciphertext output</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;Uint8Array></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~OCB"><span class="type-signature">(async, inner) </span>OCB<span class="signature">(cipher, key)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Class to en/decrypt using OCB mode.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>cipher</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The symmetric cipher algorithm to use e.g. 'aes128'</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>key</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The encryption key</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="crypto_ocb.js.html">crypto/ocb.js</a>, <a href="crypto_ocb.js.html#line66">line 66</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
     
 
     

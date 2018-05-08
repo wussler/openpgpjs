@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Source: packet/userid.js</title>
+    <title>JSDoc: Source: crypto/cmac.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Source: packet/userid.js</h1>
+    <h1 class="page-title">Source: crypto/cmac.js</h1>
 
     
 
@@ -26,93 +26,104 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>// GPG4Browsers - An OpenPGP implementation in javascript
-// Copyright (C) 2011 Recurity Labs GmbH
-//
-// This library is free software; you can redistribute it and/or
-// modify it under the terms of the GNU Lesser General Public
-// License as published by the Free Software Foundation; either
-// version 3.0 of the License, or (at your option) any later version.
-//
-// This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-// Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public
-// License along with this library; if not, write to the Free Software
-// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-
-/**
- * @requires enums
+            <pre class="prettyprint source linenums"><code>/**
+ * @fileoverview This module implements AES-CMAC on top of
+ * native AES-CBC using either the WebCrypto API or Node.js' crypto API.
+ * @requires asmcrypto.js
  * @requires util
+ * @module crypto/cmac
  */
 
-import enums from '../enums';
+import { AES_CBC } from 'asmcrypto.js/src/aes/cbc/exports';
 import util from '../util';
 
-/**
- * Implementation of the User ID Packet (Tag 13)
- *
- * A User ID packet consists of UTF-8 text that is intended to represent
- * the name and email address of the key holder.  By convention, it
- * includes an RFC 2822 [RFC2822] mail name-addr, but there are no
- * restrictions on its content.  The packet length in the header
- * specifies the length of the User ID.
- * @memberof module:packet
- * @constructor
- */
-function Userid() {
-  this.tag = enums.packet.userid;
-  /** A string containing the user id. Usually in the form
-   * John Doe &lt;john@example.com>
-   * @type {String}
-   */
-  this.userid = '';
+const webCrypto = util.getWebCrypto();
+const nodeCrypto = util.getNodeCrypto();
+const Buffer = util.getNodeBuffer();
 
-  this.name = '';
-  this.email = '';
-  this.comment = '';
+
+/**
+ * This implementation of CMAC is based on the description of OMAC in
+ * http://web.cs.ucdavis.edu/~rogaway/papers/eax.pdf. As per that
+ * document:
+ *
+ * We have made a small modification to the OMAC algorithm as it was
+ * originally presented, changing one of its two constants.
+ * Specifically, the constant 4 at line 85 was the constant 1/2 (the
+ * multiplicative inverse of 2) in the original definition of OMAC [14].
+ * The OMAC authors indicate that they will promulgate this modification
+ * [15], which slightly simplifies implementations.
+ */
+
+const blockLength = 16;
+
+
+/**
+ * xor `padding` into the end of `data`. This function implements "the
+ * operation xor→ [which] xors the shorter string into the end of longer
+ * one". Since data is always as least as long as padding, we can
+ * simplify the implementation.
+ * @param {Uint8Array} data
+ * @param {Uint8Array} padding
+ */
+function rightXorMut(data, padding) {
+  const offset = data.length - blockLength;
+  for (let i = 0; i &lt; blockLength; i++) {
+    data[i + offset] ^= padding[i];
+  }
+  return data;
 }
 
-/**
- * Parsing function for a user id packet (tag 13).
- * @param {Uint8Array} input payload of a tag 13 packet
- */
-Userid.prototype.read = function (bytes) {
-  this.parse(util.decode_utf8(util.Uint8Array_to_str(bytes)));
-};
-
-/**
- * Parse userid string, e.g. 'John Doe &lt;john@example.com>'
- */
-Userid.prototype.parse = function (userid) {
-  try {
-    Object.assign(this, util.parseUserId(userid));
-  } catch(e) {}
-  this.userid = userid;
-};
-
-/**
- * Creates a binary representation of the user id packet
- * @returns {Uint8Array} binary representation
- */
-Userid.prototype.write = function () {
-  return util.str_to_Uint8Array(util.encode_utf8(this.userid));
-};
-
-/**
- * Set userid string from object, e.g. { name:'Phil Zimmermann', email:'phil@openpgp.org' }
- */
-Userid.prototype.format = function (userid) {
-  if (util.isString(userid)) {
-    userid = util.parseUserId(userid);
+function pad(data, padding, padding2) {
+  // if |M| in {n, 2n, 3n, ...}
+  if (data.length % blockLength === 0) {
+    // then return M xor→ B,
+    return rightXorMut(data, padding);
   }
-  Object.assign(this, userid);
-  this.userid = util.formatUserId(userid);
-};
+  // else return (M || 10^(n−1−(|M| mod n))) xor→ P
+  const padded = new Uint8Array(data.length + (blockLength - data.length % blockLength));
+  padded.set(data);
+  padded[data.length] = 0b10000000;
+  return rightXorMut(padded, padding2);
+}
 
-export default Userid;
+const zeroBlock = new Uint8Array(blockLength);
+
+export default async function CMAC(key) {
+  const cbc = await CBC(key);
+
+  // L ← E_K(0^n); B ← 2L; P ← 4L
+  const padding = util.double(await cbc(zeroBlock));
+  const padding2 = util.double(padding);
+
+  return async function(data) {
+    // return CBC_K(pad(M; B, P))
+    return (await cbc(pad(data, padding, padding2))).subarray(-blockLength);
+  };
+}
+
+async function CBC(key) {
+  if (util.getWebCrypto() &amp;&amp; key.length !== 24) { // WebCrypto (no 192 bit support) see: https://www.chromium.org/blink/webcrypto#TOC-AES-support
+    key = await webCrypto.importKey('raw', key, { name: 'AES-CBC', length: key.length * 8 }, false, ['encrypt']);
+    return async function(pt) {
+      const ct = await webCrypto.encrypt({ name: 'AES-CBC', iv: zeroBlock, length: blockLength * 8 }, key, pt);
+      return new Uint8Array(ct).subarray(0, ct.byteLength - blockLength);
+    };
+  }
+  if (util.getNodeCrypto()) { // Node crypto library
+    key = new Buffer(key);
+    return async function(pt) {
+      pt = new Buffer(pt);
+      const en = new nodeCrypto.createCipheriv('aes-' + (key.length * 8) + '-cbc', key, zeroBlock);
+      const ct = en.update(pt);
+      return new Uint8Array(ct);
+    };
+  }
+  // asm.js fallback
+  return async function(pt) {
+    return AES_CBC.encrypt(pt, key, false, zeroBlock);
+  };
+}
 </code></pre>
         </article>
     </section>

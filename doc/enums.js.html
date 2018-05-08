@@ -30,9 +30,12 @@
  * @module enums
  */
 
+const byValue = Symbol('byValue');
+
 export default {
 
   /** Maps curve names under various standards to one
+   * @see {@link https://wiki.gnupg.org/ECC|ECC - GnuPG wiki}
    * @enum {String}
    * @readonly
    */
@@ -62,13 +65,14 @@ export default {
     "2b81040023":   "p521",
     "2B81040023":   "p521",
 
-    /** SECP256k1 Curve */
+    /** SECG SECP256k1 Curve */
     "secp256k1":    "secp256k1",
     "1.3.132.0.10": "secp256k1",
     "2b8104000a":   "secp256k1",
     "2B8104000A":   "secp256k1",
 
-    /** Ed25519 Curve */
+    /** Ed25519 */
+    "ED25519":                "ed25519",
     "ed25519":                "ed25519",
     "Ed25519":                "ed25519",
     "1.3.6.1.4.1.11591.15.1": "ed25519",
@@ -76,12 +80,31 @@ export default {
     "2B06010401DA470F01":     "ed25519",
 
     /** Curve25519 */
+    "X25519":                 "curve25519",
     "cv25519":                "curve25519",
     "curve25519":             "curve25519",
     "Curve25519":             "curve25519",
     "1.3.6.1.4.1.3029.1.5.1": "curve25519",
     "2b060104019755010501":   "curve25519",
-    "2B060104019755010501":   "curve25519"
+    "2B060104019755010501":   "curve25519",
+
+    /** BrainpoolP256r1 Curve */
+    "brainpoolP256r1":       "brainpoolP256r1",
+    "1.3.36.3.3.2.8.1.1.7":  "brainpoolP256r1",
+    "2b2403030208010107":    "brainpoolP256r1",
+    "2B2403030208010107":    "brainpoolP256r1",
+
+    /** BrainpoolP384r1 Curve */
+    "brainpoolP384r1":       "brainpoolP384r1",
+    "1.3.36.3.3.2.8.1.1.11": "brainpoolP384r1",
+    "2b240303020801010b":    "brainpoolP384r1",
+    "2B240303020801010B":    "brainpoolP384r1",
+
+    /** BrainpoolP512r1 Curve */
+    "brainpoolP512r1":       "brainpoolP512r1",
+    "1.3.36.3.3.2.8.1.1.13": "brainpoolP512r1",
+    "2b240303020801010d":    "brainpoolP512r1",
+    "2B240303020801010D":    "brainpoolP512r1"
   },
 
   /** A string to key specifier type
@@ -95,7 +118,7 @@ export default {
     gnu: 101
   },
 
-  /** {@link https://tools.ietf.org/html/rfc4880#section-9.1|RFC4880, section 9.1}
+  /** {@link https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-04#section-9.1|RFC4880bis-04, section 9.1}
    * @enum {Integer}
    * @readonly
    */
@@ -116,7 +139,11 @@ export default {
     ecdsa: 19,
     /** EdDSA (Sign only)
      * [{@link https://tools.ietf.org/html/draft-koch-eddsa-for-openpgp-04|Draft RFC}] */
-    eddsa: 22
+    eddsa: 22,
+    /** Reserved for AEDH */
+    aedh: 23,
+    /** Reserved for AEDSA */
+    aedsa: 24
   },
 
   /** {@link https://tools.ietf.org/html/rfc4880#section-9.2|RFC4880, section 9.2}
@@ -174,6 +201,16 @@ export default {
     'SHA-512': 10
   },
 
+  /** {@link https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-04#section-9.6|RFC4880bis-04, section 9.6}
+   * @enum {Integer}
+   * @readonly
+   */
+  aead: {
+    eax: 1,
+    ocb: 2,
+    experimental_gcm: 100 // Private algorithm
+  },
+
   /** A list of packet types and numeric tags associated with them.
    * @enum {Integer}
    * @readonly
@@ -209,7 +246,9 @@ export default {
     /** Text data 't' */
     text: 't'.charCodeAt(),
     /** Utf8 data 'u' */
-    utf8: 'u'.charCodeAt()
+    utf8: 'u'.charCodeAt(),
+    /** MIME message body part 'm' */
+    mime: 'm'.charCodeAt()
   },
 
 
@@ -363,7 +402,9 @@ export default {
     reason_for_revocation: 29,
     features: 30,
     signature_target: 31,
-    embedded_signature: 32
+    embedded_signature: 32,
+    issuer_fingerprint: 33,
+    preferred_aead_algorithms: 34
   },
 
   /** Key flags
@@ -415,6 +456,21 @@ export default {
     signature: 6
   },
 
+  /** {@link https://tools.ietf.org/html/draft-ietf-openpgp-rfc4880bis-04#section-5.2.3.25|RFC4880bis-04, section 5.2.3.25}
+   * @enum {Integer}
+   * @readonly
+   */
+  features: {
+    /** 0x01 - Modification Detection (packets 18 and 19) */
+    modification_detection: 1,
+    /** 0x02 - AEAD Encrypted Data Packet (packet 20) and version 5
+     *         Symmetric-Key Encrypted Session Key Packets (packet 3) */
+    aead: 2,
+    /** 0x04 - Version 5 Public-Key Packet format and corresponding new
+      *        fingerprint format */
+    v5_keys: 4
+  },
+
   /** Asserts validity and converts from string/integer to integer. */
   write: function(type, e) {
     if (typeof e === 'number') {
@@ -430,10 +486,15 @@ export default {
 
   /** Converts from an integer to string. */
   read: function(type, e) {
-    for (const i in type) {
-      if (type[i] === parseInt(e, 10)) {
-        return i;
-      }
+    if (!type[byValue]) {
+      type[byValue] = [];
+      Object.entries(type).forEach(([key, value]) => {
+        type[byValue][value] = key;
+      });
+    }
+
+    if (type[byValue][e] !== undefined) {
+      return type[byValue][e];
     }
 
     throw new Error('Invalid enum value.');
@@ -450,13 +511,13 @@ export default {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Mar 13 2018 23:35:48 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon May 07 2018 18:51:50 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>
