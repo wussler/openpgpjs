@@ -315,11 +315,6 @@ function isValidSigningKeyPacket(keyPacket, signature, date=new Date()) {
 Key.prototype.getSigningKeyPacket = async function (keyId=null, date=new Date(), userId={}) {
   const primaryKey = this.primaryKey;
   if (await this.verifyPrimaryKey(date, userId) === enums.keyStatus.valid) {
-    const primaryUser = await this.getPrimaryUser(date, userId);
-    if (primaryUser &amp;&amp; (!keyId || primaryKey.getKeyId().equals(keyId)) &amp;&amp;
-        isValidSigningKeyPacket(primaryKey, primaryUser.selfCertification, date)) {
-      return primaryKey;
-    }
     for (let i = 0; i &lt; this.subKeys.length; i++) {
       if (!keyId || this.subKeys[i].subKey.getKeyId().equals(keyId)) {
         // eslint-disable-next-line no-await-in-loop
@@ -330,6 +325,11 @@ Key.prototype.getSigningKeyPacket = async function (keyId=null, date=new Date(),
           }
         }
       }
+    }
+    const primaryUser = await this.getPrimaryUser(date, userId);
+    if (primaryUser &amp;&amp; (!keyId || primaryKey.getKeyId().equals(keyId)) &amp;&amp;
+        isValidSigningKeyPacket(primaryKey, primaryUser.selfCertification, date)) {
+      return primaryKey;
     }
   }
   return null;
@@ -522,15 +522,16 @@ Key.prototype.getPrimaryUser = async function(date=new Date(), userId={}) {
   const users = this.users.map(function(user, index) {
     const selfCertification = getLatestSignature(user.selfCertifications, date);
     return { index, user, selfCertification };
-  }).filter(({ user }) => {
-    return user.userId &amp;&amp; (
+  }).filter(({ user, selfCertification }) => {
+    return user.userId &amp;&amp; selfCertification &amp;&amp; (
       (userId.name === undefined || user.userId.name === userId.name) &amp;&amp;
       (userId.email === undefined || user.userId.email === userId.email) &amp;&amp;
       (userId.comment === undefined || user.userId.comment === userId.comment)
     );
   });
   if (!users.length) {
-    if (userId) {
+    if (userId.name !== undefined || userId.email !== undefined ||
+        userId.comment !== undefined) {
       throw new Error('Could not find user that matches that user ID');
     }
     return null;
@@ -599,7 +600,8 @@ Key.prototype.update = async function(key) {
   await Promise.all(key.users.map(async srcUser => {
     let found = false;
     await Promise.all(this.users.map(async dstUser => {
-      if ((srcUser.userId &amp;&amp; (srcUser.userId.userid === dstUser.userId.userid)) ||
+      if ((srcUser.userId &amp;&amp; dstUser.userId &amp;&amp;
+            (srcUser.userId.userid === dstUser.userId.userid)) ||
           (srcUser.userAttribute &amp;&amp; (srcUser.userAttribute.equals(dstUser.userAttribute)))) {
         await dstUser.update(srcUser, this.primaryKey);
         found = true;
@@ -651,9 +653,71 @@ async function mergeSignatures(source, dest, attr, checkFn) {
   }
 }
 
-// TODO
-Key.prototype.revoke = function() {
+/**
+ * Revokes the key
+ * @param  {Object} reasonForRevocation optional, object indicating the reason for revocation
+ * @param  {module:enums.reasonForRevocation} reasonForRevocation.flag optional, flag indicating the reason for revocation
+ * @param  {String} reasonForRevocation.string optional, string explaining the reason for revocation
+ * @param  {Date} date optional, override the creationtime of the revocation signature
+ * @return {module:key~Key} new key with revocation signature
+ */
+Key.prototype.revoke = async function({
+  flag: reasonForRevocationFlag=enums.reasonForRevocation.no_reason,
+  string: reasonForRevocationString=''
+} = {}, date=new Date()) {
+  if (this.isPublic()) {
+    throw new Error('Need private key for revoking');
+  }
+  const dataToSign = { key: this.primaryKey };
+  const key = new Key(this.toPacketlist());
+  key.revocationSignatures.push(await createSignaturePacket(dataToSign, null, this.primaryKey, {
+    signatureType: enums.signature.key_revocation,
+    reasonForRevocationFlag: enums.write(enums.reasonForRevocation, reasonForRevocationFlag),
+    reasonForRevocationString
+  }, date));
+  return key;
+};
 
+/**
+ * Get revocation certificate from a revoked key.
+ *   (To get a revocation certificate for an unrevoked key, call revoke() first.)
+ * @return {String} armored revocation certificate
+ */
+Key.prototype.getRevocationCertificate = function() {
+  if (this.revocationSignatures.length) {
+    const packetlist = new packet.List();
+    packetlist.push(getLatestSignature(this.revocationSignatures));
+    return armor.encode(enums.armor.public_key, packetlist.write(), null, null, 'This is a revocation certificate');
+  }
+};
+
+/**
+ * Applies a revocation certificate to a key
+ * This adds the first signature packet in the armored text to the key,
+ * if it is a valid revocation signature.
+ * @param  {String} revocationCertificate armored revocation certificate
+ * @return {module:key~Key} new revoked key
+ */
+Key.prototype.applyRevocationCertificate = async function(revocationCertificate) {
+  const input = armor.decode(revocationCertificate);
+  const packetlist = new packet.List();
+  packetlist.read(input.data);
+  const revocationSignature = packetlist.findPacket(enums.packet.signature);
+  if (!revocationSignature || revocationSignature.signatureType !== enums.signature.key_revocation) {
+    throw new Error('Could not find revocation signature packet');
+  }
+  if (!revocationSignature.issuerKeyId.equals(this.primaryKey.getKeyId())) {
+    throw new Error('Revocation signature does not match key');
+  }
+  if (revocationSignature.isExpired()) {
+    throw new Error('Revocation signature is expired');
+  }
+  if (!await revocationSignature.verify(this.primaryKey, { key: this.primaryKey })) {
+    throw new Error('Could not verify revocation signature');
+  }
+  const key = new Key(this.toPacketlist());
+  key.revocationSignatures.push(revocationSignature);
+  return key;
 };
 
 /**
@@ -789,15 +853,11 @@ User.prototype.sign = async function(primaryKey, privateKeys) {
     if (!signingKeyPacket.isDecrypted) {
       throw new Error('Private key is not decrypted.');
     }
-    const signaturePacket = new packet.Signature();
-    // Most OpenPGP implementations use generic certification (0x10)
-    signaturePacket.signatureType = enums.write(enums.signature, enums.signature.cert_generic);
-    signaturePacket.keyFlags = [enums.keyFlags.certify_keys | enums.keyFlags.sign_data];
-    signaturePacket.publicKeyAlgorithm = signingKeyPacket.algorithm;
-    signaturePacket.hashAlgorithm = await getPreferredHashAlgo(privateKey);
-    signaturePacket.signingKeyId = signingKeyPacket.getKeyId();
-    signaturePacket.sign(signingKeyPacket, dataToSign);
-    return signaturePacket;
+    return createSignaturePacket(dataToSign, privateKey, signingKeyPacket, {
+      // Most OpenPGP implementations use generic certification (0x10)
+      signatureType: enums.signature.cert_generic,
+      keyFlags: [enums.keyFlags.certify_keys | enums.keyFlags.sign_data]
+    });
   }));
   await user.update(this, primaryKey);
   return user;
@@ -824,6 +884,28 @@ User.prototype.isRevoked = async function(primaryKey, certificate, key, date=new
     }, this.revocationSignatures, certificate, key, date
   );
 };
+
+/**
+ * Create signature packet
+ * @param  {Object}                          dataToSign Contains packets to be signed
+ * @param  {module:packet.SecretKey|
+ *          module:packet.SecretSubkey}      signingKeyPacket secret key packet for signing
+ * @param  {Object} signatureProperties      (optional) properties to write on the signature packet before signing
+ * @param  {Date} date                       (optional) override the creationtime of the signature
+ * @param  {Object} userId                   (optional) user ID
+ * @return {module:packet/signature}         signature packet
+ */
+export async function createSignaturePacket(dataToSign, privateKey, signingKeyPacket, signatureProperties, date, userId) {
+  if (!signingKeyPacket.isDecrypted) {
+    throw new Error('Private key is not decrypted.');
+  }
+  const signaturePacket = new packet.Signature(date);
+  Object.assign(signaturePacket, signatureProperties);
+  signaturePacket.publicKeyAlgorithm = signingKeyPacket.algorithm;
+  signaturePacket.hashAlgorithm = await getPreferredHashAlgo(privateKey, signingKeyPacket, date, userId);
+  await signaturePacket.sign(signingKeyPacket, dataToSign);
+  return signaturePacket;
+}
 
 /**
  * Verifies the user certificate
@@ -1063,6 +1145,30 @@ SubKey.prototype.update = async function(subKey, primaryKey) {
 };
 
 /**
+ * Revokes the subkey
+ * @param  {module:packet.SecretKey} primaryKey decrypted private primary key for revocation
+ * @param  {Object} reasonForRevocation optional, object indicating the reason for revocation
+ * @param  {module:enums.reasonForRevocation} reasonForRevocation.flag optional, flag indicating the reason for revocation
+ * @param  {String} reasonForRevocation.string optional, string explaining the reason for revocation
+ * @param  {Date} date optional, override the creationtime of the revocation signature
+ * @return {module:key~SubKey} new subkey with revocation signature
+ */
+SubKey.prototype.revoke = async function(primaryKey, {
+  flag: reasonForRevocationFlag=enums.reasonForRevocation.no_reason,
+  string: reasonForRevocationString=''
+} = {}, date=new Date()) {
+  const dataToSign = { key: primaryKey, bind: this.subKey };
+  const subKey = new SubKey(this.subKey);
+  subKey.revocationSignatures.push(await createSignaturePacket(dataToSign, null, primaryKey, {
+    signatureType: enums.signature.subkey_revocation,
+    reasonForRevocationFlag: enums.write(enums.reasonForRevocation, reasonForRevocationFlag),
+    reasonForRevocationString
+  }, date));
+  await subKey.update(this, primaryKey);
+  return subKey;
+};
+
+/**
  * Reads an unarmored OpenPGP key list and returns one or multiple key objects
  * @param {Uint8Array} data to be parsed
  * @returns {{keys: Array&lt;module:key.Key>,
@@ -1293,7 +1399,7 @@ async function wrapKeyObject(secretKeyPacket, secretSubkeyPackets, options) {
     const signaturePacket = new packet.Signature(options.date);
     signaturePacket.signatureType = enums.signature.cert_generic;
     signaturePacket.publicKeyAlgorithm = secretKeyPacket.algorithm;
-    signaturePacket.hashAlgorithm = await getPreferredHashAlgo(secretKeyPacket);
+    signaturePacket.hashAlgorithm = await getPreferredHashAlgo(null, secretKeyPacket);
     signaturePacket.keyFlags = [enums.keyFlags.certify_keys | enums.keyFlags.sign_data];
     signaturePacket.preferredSymmetricAlgorithms = [];
     // prefer aes256, aes128, then aes192 (no WebCrypto support: https://www.chromium.org/blink/webcrypto#TOC-AES-support)
@@ -1349,7 +1455,7 @@ async function wrapKeyObject(secretKeyPacket, secretSubkeyPackets, options) {
     const subkeySignaturePacket = new packet.Signature(subkeyOptions.date);
     subkeySignaturePacket.signatureType = enums.signature.subkey_binding;
     subkeySignaturePacket.publicKeyAlgorithm = secretKeyPacket.algorithm;
-    subkeySignaturePacket.hashAlgorithm = await getPreferredHashAlgo(secretSubkeyPacket);
+    subkeySignaturePacket.hashAlgorithm = await getPreferredHashAlgo(null, secretSubkeyPacket);
     subkeySignaturePacket.keyFlags = subkeyOptions.sign ? enums.keyFlags.sign_data : [enums.keyFlags.encrypt_communication | enums.keyFlags.encrypt_storage];
     if (subkeyOptions.keyExpirationTime > 0) {
       subkeySignaturePacket.keyExpirationTime = subkeyOptions.keyExpirationTime;
@@ -1364,6 +1470,15 @@ async function wrapKeyObject(secretKeyPacket, secretSubkeyPackets, options) {
       packetlist.push(subkeySignaturePacket);
     });
   });
+
+  // Add revocation signature packet for creating a revocation certificate.
+  // This packet should be removed before returning the key.
+  const dataToSign = { key: secretKeyPacket };
+  packetlist.push(await createSignaturePacket(dataToSign, null, secretKeyPacket, {
+    signatureType: enums.signature.key_revocation,
+    reasonForRevocationFlag: enums.reasonForRevocation.no_reason,
+    reasonForRevocationString: ''
+  }, options.date));
 
   // set passphrase protection
   if (options.passphrase) {
@@ -1442,13 +1557,14 @@ function getExpirationTime(keyPacket, signature) {
 
 /**
  * Returns the preferred signature hash algorithm of a key
- * @param  {object} key
+ * @param  {module:key.Key} key (optional) the key to get preferences from
+ * @param  {module:packet.SecretKey|module:packet.SecretSubkey} keyPacket key packet used for signing
  * @param  {Date} date (optional) use the given date for verification instead of the current time
  * @param  {Object} userId (optional) user ID
  * @returns {Promise&lt;String>}
  * @async
  */
-export async function getPreferredHashAlgo(key, date=new Date(), userId={}) {
+export async function getPreferredHashAlgo(key, keyPacket, date=new Date(), userId={}) {
   let hash_algo = config.prefer_hash_algorithm;
   let pref_algo = hash_algo;
   if (key instanceof Key) {
@@ -1458,19 +1574,17 @@ export async function getPreferredHashAlgo(key, date=new Date(), userId={}) {
       hash_algo = crypto.hash.getHashByteLength(hash_algo) &lt;= crypto.hash.getHashByteLength(pref_algo) ?
         pref_algo : hash_algo;
     }
-    // disable expiration checks
-    key = key.getSigningKeyPacket(undefined, null, userId);
   }
-  switch (Object.getPrototypeOf(key)) {
+  switch (Object.getPrototypeOf(keyPacket)) {
     case packet.SecretKey.prototype:
     case packet.PublicKey.prototype:
     case packet.SecretSubkey.prototype:
     case packet.PublicSubkey.prototype:
-      switch (key.algorithm) {
+      switch (keyPacket.algorithm) {
         case 'ecdh':
         case 'ecdsa':
         case 'eddsa':
-          pref_algo = crypto.publicKey.elliptic.getPreferredHashAlgo(key.params[0]);
+          pref_algo = crypto.publicKey.elliptic.getPreferredHashAlgo(keyPacket.params[0]);
       }
   }
   return crypto.hash.getHashByteLength(hash_algo) &lt;= crypto.hash.getHashByteLength(pref_algo) ?
@@ -1545,13 +1659,13 @@ export async function isAeadSupported(keys, date=new Date(), userId={}) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon May 07 2018 18:51:50 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon Jul 16 2018 12:26:56 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>

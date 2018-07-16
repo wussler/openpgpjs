@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Module: crypto/public_key/elliptic/key</title>
+    <title>JSDoc: Source: wkd.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,153 +17,95 @@
 
 <div id="main">
 
-    <h1 class="page-title">Module: crypto/public_key/elliptic/key</h1>
+    <h1 class="page-title">Source: wkd.js</h1>
 
     
 
 
 
-
-<section>
-
-<header>
     
-        
-            
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-            <div class="description"><p>Wrapper for a KeyPair of an Elliptic Curve</p></div>
-        
-
-        
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="crypto_public_key_elliptic_key.js.html">crypto/public_key/elliptic/key.js</a>, <a href="crypto_public_key_elliptic_key.js.html#line18">line 18</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-    
-    </div>
-
-    
-
-    
-        <h3 class="subsection-title">Requires</h3>
-
-        <ul>
-            <li>module:bn.js</li>
-        
-            <li>module:crypto/public_key/elliptic/curves</li>
-        
-            <li><a href="module-crypto_hash.html">module:crypto/hash</a></li>
-        
-            <li><a href="module-util.html">module:util</a></li>
-        
-            <li><a href="module-enums.html">module:enums</a></li>
-        
-            <li>module:asn1.js</li>
-        </ul>
-    
-
-    
-        <h3 class="subsection-title">Classes</h3>
-
-        <dl>
-            <dt><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></dt>
-            <dd></dd>
-        </dl>
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-</article>
-
-</section>
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// OpenPGP.js - An OpenPGP implementation in javascript
+// Copyright (C) 2018 Wiktor Kwapisiewicz
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+/**
+ * @fileoverview This class implements a client for the Web Key Directory (wkd) protocol
+ * in order to lookup keys on designated servers.
+ * See: https://datatracker.ietf.org/doc/draft-koch-openpgp-webkey-service/
+ * @module wkd
+ */
+
+import util from './util';
+import crypto from './crypto';
+import * as keyMod from './key';
+
+/**
+ * Initialize the WKD client
+ * @constructor
+ */
+function WKD() {
+  this._fetch = typeof window !== 'undefined' ? window.fetch : require('node-fetch');
+}
+
+/**
+ * Search for a public key using Web Key Directory protocol.
+ * @param   {String}   options.email         User's email.
+ * @param   {Boolean}  options.rawBytes      Returns Uint8Array instead of parsed key.
+ * @returns {Promise&lt;Uint8Array|
+ *           {keys: Array&lt;module:key.Key>,
+ *            err: (Array&lt;Error>|null)}>}     The public key.
+ * @async
+ */
+WKD.prototype.lookup = function(options) {
+  const fetch = this._fetch;
+
+  if (!options.email) {
+    throw new Error('You must provide an email parameter!');
+  }
+
+  if (!util.isEmailAddress(options.email)) {
+      throw new Error('Invalid e-mail address.');
+  }
+
+  const [, localPart, domain] = /(.*)@(.*)/.exec(options.email);
+  const localEncoded = util.encodeZBase32(crypto.hash.sha1(util.str_to_Uint8Array(localPart.toLowerCase())));
+
+  const url = `https://${domain}/.well-known/openpgpkey/hu/${localEncoded}`;
+
+  return fetch(url).then(function(response) {
+    if (response.status === 200) {
+      return response.arrayBuffer();
+    }
+  }).then(function(publicKey) {
+    if (publicKey) {
+        const rawBytes = new Uint8Array(publicKey);
+        if (options.rawBytes) {
+          return rawBytes;
+        }
+        return keyMod.read(rawBytes);
+    }
+  });
+};
+
+export default WKD;
+</code></pre>
+        </article>
+    </section>
 
 
 

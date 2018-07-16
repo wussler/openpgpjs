@@ -93,6 +93,258 @@
     
 
     
+    <h4 class="name" id=".createSignaturePacket"><span class="type-signature">(static) </span>createSignaturePacket<span class="signature">(dataToSign, signingKeyPacket, signatureProperties, date, userId)</span><span class="type-signature"> &rarr; {module:packet/signature}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Create signature packet</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>dataToSign</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Contains packets to be signed</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signingKeyPacket</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-packet.SecretKey.html">module:packet.SecretKey</a></span>
+|
+
+<span class="param-type"><a href="module-packet.SecretSubkey.html">module:packet.SecretSubkey</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>secret key packet for signing</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signatureProperties</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) properties to write on the signature packet before signing</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>date</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Date</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) override the creationtime of the signature</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>userId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) user ID</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line870">line 870</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>signature packet</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">module:packet/signature</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
     <h4 class="name" id=".generate"><span class="type-signature">(async, static) </span>generate<span class="signature">(curve, date, subkeys)</span><span class="type-signature"> &rarr; {Promise.&lt;<a href="module-key.Key.html">module:key.Key</a>>}</span></h4>
     
 
@@ -248,7 +500,7 @@ Primary and subkey will be of same type.</p>
                 </td>
             
 
-            <td class="description last"><p>Assumes already in form of &quot;User Name <a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#x75;&#115;&#101;&#x72;&#x6e;&#x61;&#109;&#101;&#64;&#101;&#x6d;&#x61;&#x69;&#108;&#x2e;&#99;&#x6f;&#109;">&#x75;&#115;&#101;&#x72;&#x6e;&#x61;&#109;&#101;&#64;&#101;&#x6d;&#x61;&#x69;&#108;&#x2e;&#99;&#x6f;&#109;</a>&quot;
+            <td class="description last"><p>Assumes already in form of &quot;User Name <a href="&#109;&#x61;&#x69;&#x6c;&#116;&#111;&#58;&#117;&#x73;&#101;&#x72;&#x6e;&#x61;&#109;&#101;&#64;&#x65;&#x6d;&#x61;&#105;&#108;&#x2e;&#x63;&#111;&#x6d;">&#117;&#x73;&#101;&#x72;&#x6e;&#x61;&#109;&#101;&#64;&#x65;&#x6d;&#x61;&#105;&#108;&#x2e;&#x63;&#111;&#x6d;</a>&quot;
                             If array is used, the first userId is set as primary user Id</p></td>
         </tr>
 
@@ -470,7 +722,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1113">line 1113</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1219">line 1219</a>
     </li></ul></dd>
     
 
@@ -695,7 +947,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1461">line 1461</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1575">line 1575</a>
     </li></ul></dd>
     
 
@@ -751,7 +1003,7 @@ Primary and subkey will be of same type.</p>
     
 
     
-    <h4 class="name" id=".getPreferredHashAlgo"><span class="type-signature">(async, static) </span>getPreferredHashAlgo<span class="signature">(key, date, userId)</span><span class="type-signature"> &rarr; {Promise.&lt;String>}</span></h4>
+    <h4 class="name" id=".getPreferredHashAlgo"><span class="type-signature">(async, static) </span>getPreferredHashAlgo<span class="signature">(key, keyPacket, date, userId)</span><span class="type-signature"> &rarr; {Promise.&lt;String>}</span></h4>
     
 
     
@@ -801,7 +1053,7 @@ Primary and subkey will be of same type.</p>
             <td class="type">
             
                 
-<span class="param-type">object</span>
+<span class="param-type"><a href="module-key.Key.html">module:key.Key</a></span>
 
 
             
@@ -811,7 +1063,33 @@ Primary and subkey will be of same type.</p>
 
             
 
-            <td class="description last"></td>
+            <td class="description last"><p>(optional) the key to get preferences from</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>keyPacket</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-packet.SecretKey.html">module:packet.SecretKey</a></span>
+|
+
+<span class="param-type"><a href="module-packet.SecretSubkey.html">module:packet.SecretSubkey</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>key packet used for signing</p></td>
         </tr>
 
     
@@ -898,7 +1176,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1423">line 1423</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1539">line 1539</a>
     </li></ul></dd>
     
 
@@ -1074,7 +1352,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1498">line 1498</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1612">line 1612</a>
     </li></ul></dd>
     
 
@@ -1227,7 +1505,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1044">line 1044</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1150">line 1150</a>
     </li></ul></dd>
     
 
@@ -1384,7 +1662,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1078">line 1078</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1184">line 1184</a>
     </li></ul></dd>
     
 
@@ -1593,7 +1871,7 @@ Primary and subkey will be of same type.</p>
                 </td>
             
 
-            <td class="description last"><p>Assumes already in form of &quot;User Name <a href="&#109;&#x61;&#x69;&#x6c;&#116;&#111;&#58;&#x75;&#x73;&#101;&#114;&#x6e;&#x61;&#109;&#101;&#x40;&#x65;&#x6d;&#97;&#105;&#x6c;&#46;&#x63;&#111;&#x6d;">&#x75;&#x73;&#101;&#114;&#x6e;&#x61;&#109;&#101;&#x40;&#x65;&#x6d;&#97;&#105;&#x6c;&#46;&#x63;&#111;&#x6d;</a>&quot;
+            <td class="description last"><p>Assumes already in form of &quot;User Name <a href="&#109;&#x61;&#105;&#x6c;&#116;&#111;&#x3a;&#117;&#x73;&#x65;&#x72;&#110;&#x61;&#109;&#101;&#64;&#101;&#109;&#x61;&#x69;&#108;&#46;&#x63;&#x6f;&#109;">&#117;&#x73;&#x65;&#x72;&#110;&#x61;&#109;&#101;&#64;&#101;&#109;&#x61;&#x69;&#108;&#46;&#x63;&#x6f;&#109;</a>&quot;
                             If array is used, the first userId is set as primary user Id</p></td>
         </tr>
 
@@ -1779,7 +2057,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1194">line 1194</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1300">line 1300</a>
     </li></ul></dd>
     
 
@@ -2239,7 +2517,7 @@ Primary and subkey will be of same type.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1370">line 1370</a>
+        <a href="key.js.html">key.js</a>, <a href="key.js.html#line1485">line 1485</a>
     </li></ul></dd>
     
 
@@ -2305,13 +2583,13 @@ Primary and subkey will be of same type.</p>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon May 07 2018 18:51:51 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon Jul 16 2018 12:26:56 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>
