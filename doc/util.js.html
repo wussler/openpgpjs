@@ -48,17 +48,17 @@
 /**
  * This object contains utility functions
  * @requires address-rfc2822
+ * @requires web-stream-tools
  * @requires config
  * @requires encoding/base64
  * @module util
  */
 
 import rfc2822 from 'address-rfc2822';
+import stream from 'web-stream-tools';
 import config from './config';
 import util from './util'; // re-import module to access util functions
 import b64 from './encoding/base64';
-
-const isIE11 = typeof navigator !== 'undefined' &amp;&amp; !!navigator.userAgent.match(/Trident\/7\.0.*rv:([0-9.]+).*\).*Gecko$/);
 
 export default {
   isString: function(data) {
@@ -69,41 +69,98 @@ export default {
     return Array.prototype.isPrototypeOf(data);
   },
 
-  isUint8Array: function(data) {
-    return Uint8Array.prototype.isPrototypeOf(data);
-  },
+  isUint8Array: stream.isUint8Array,
+
+  isStream: stream.isStream,
 
   /**
    * Get transferable objects to pass buffers with zero copy (similar to "pass by reference" in C++)
    *   See: https://developer.mozilla.org/en-US/docs/Web/API/Worker/postMessage
+   * Also, convert ReadableStreams to MessagePorts
    * @param  {Object} obj           the options object to be passed to the web worker
    * @returns {Array&lt;ArrayBuffer>}   an array of binary data to be passed
    */
   getTransferables: function(obj) {
-    // Internet Explorer does not support Transferable objects.
-    if (isIE11) {
-      return undefined;
-    }
-    if (config.zero_copy &amp;&amp; Object.prototype.isPrototypeOf(obj)) {
-      const transferables = [];
-      util.collectBuffers(obj, transferables);
-      return transferables.length ? transferables : undefined;
-    }
+    const transferables = [];
+    util.collectTransferables(obj, transferables);
+    return transferables.length ? transferables : undefined;
   },
 
-  collectBuffers: function(obj, collection) {
+  collectTransferables: function(obj, collection) {
     if (!obj) {
       return;
     }
+
     if (util.isUint8Array(obj) &amp;&amp; collection.indexOf(obj.buffer) === -1) {
-      collection.push(obj.buffer);
+      if (config.zero_copy) {
+        collection.push(obj.buffer);
+      }
       return;
     }
     if (Object.prototype.isPrototypeOf(obj)) {
-      Object.values(obj).forEach(value => { // recursively search all children
-        util.collectBuffers(value, collection);
+      Object.entries(obj).forEach(([key, value]) => { // recursively search all children
+        if (util.isStream(value)) {
+          if (value.locked) {
+            obj[key] = null;
+          } else {
+            const transformed = stream.transformPair(value, async readable => {
+              const reader = stream.getReader(readable);
+              const { port1, port2 } = new MessageChannel();
+              port1.onmessage = async function({ data: { action } }) {
+                if (action === 'read') port1.postMessage(await reader.read());
+                else if (action === 'cancel') port1.postMessage(await transformed.cancel());
+              };
+              obj[key] = port2;
+              collection.push(port2);
+            });
+          }
+          return;
+        }
+        if (typeof MessagePort !== 'undefined' &amp;&amp; MessagePort.prototype.isPrototypeOf(value)) {
+          throw new Error("Can't transfer the same stream twice.");
+        }
+        util.collectTransferables(value, collection);
       });
     }
+  },
+
+  /**
+   * Convert MessagePorts back to ReadableStreams
+   * @param  {Object} obj
+   * @returns {Object}
+   */
+  restoreStreams: function(obj) {
+    if (Object.prototype.isPrototypeOf(obj)) {
+      Object.entries(obj).forEach(([key, value]) => { // recursively search all children
+        if (MessagePort.prototype.isPrototypeOf(value)) {
+          obj[key] = new ReadableStream({
+            pull(controller) {
+              return new Promise(resolve => {
+                value.onmessage = evt => {
+                  const { done, value } = evt.data;
+                  if (!done) {
+                    controller.enqueue(value);
+                  } else {
+                    controller.close();
+                  }
+                  resolve();
+                };
+                value.postMessage({ action: 'read' });
+              });
+            },
+            cancel() {
+              return new Promise(resolve => {
+                value.onmessage = resolve;
+                value.postMessage({ action: 'cancel' });
+              });
+            }
+          }, {highWaterMark: 0});
+          return;
+        }
+        util.restoreStreams(value);
+      });
+    }
+    return obj;
   },
 
   readNumber: function (bytes) {
@@ -249,15 +306,17 @@ export default {
    * @returns {Uint8Array} An array of 8-bit integers
    */
   str_to_Uint8Array: function (str) {
-    if (!util.isString(str)) {
-      throw new Error('str_to_Uint8Array: Data must be in the form of a string');
-    }
+    return stream.transform(str, str => {
+      if (!util.isString(str)) {
+        throw new Error('str_to_Uint8Array: Data must be in the form of a string');
+      }
 
-    const result = new Uint8Array(str.length);
-    for (let i = 0; i &lt; str.length; i++) {
-      result[i] = str.charCodeAt(i);
-    }
-    return result;
+      const result = new Uint8Array(str.length);
+      for (let i = 0; i &lt; str.length; i++) {
+        result[i] = str.charCodeAt(i);
+      }
+      return result;
+    });
   },
 
   /**
@@ -278,69 +337,47 @@ export default {
   },
 
   /**
-   * Convert a native javascript string to a string of utf8 bytes
-   * @param {String} str The string to convert
-   * @returns {String} A valid squence of utf8 bytes
+   * Convert a native javascript string to a Uint8Array of utf8 bytes
+   * @param {String|ReadableStream} str The string to convert
+   * @returns {Uint8Array|ReadableStream} A valid squence of utf8 bytes
    */
   encode_utf8: function (str) {
-    return unescape(encodeURIComponent(str));
+    const encoder = new TextEncoder('utf-8');
+    // eslint-disable-next-line no-inner-declarations
+    function process(value, lastChunk=false) {
+      return encoder.encode(value, { stream: !lastChunk });
+    }
+    return stream.transform(str, process, () => process('', true));
   },
 
   /**
-   * Convert a string of utf8 bytes to a native javascript string
-   * @param {String} utf8 A valid squence of utf8 bytes
-   * @returns {String} A native javascript string
+   * Convert a Uint8Array of utf8 bytes to a native javascript string
+   * @param {Uint8Array|ReadableStream} utf8 A valid squence of utf8 bytes
+   * @returns {String|ReadableStream} A native javascript string
    */
   decode_utf8: function (utf8) {
-    if (typeof utf8 !== 'string') {
-      throw new Error('Parameter "utf8" is not of type string');
+    const decoder = new TextDecoder('utf-8');
+    // eslint-disable-next-line no-inner-declarations
+    function process(value, lastChunk=false) {
+      return decoder.decode(value, { stream: !lastChunk });
     }
-    try {
-      return decodeURIComponent(escape(utf8));
-    } catch (e) {
-      return utf8;
-    }
+    return stream.transform(utf8, process, () => process(new Uint8Array(), true));
   },
 
   /**
-   * Concat Uint8arrays
+   * Concat a list of Uint8Arrays, Strings or Streams
+   * The caller must not mix Uint8Arrays with Strings, but may mix Streams with non-Streams.
+   * @param {Array&lt;Uint8array|String|ReadableStream>} Array of Uint8Arrays/Strings/Streams to concatenate
+   * @returns {Uint8array|String|ReadableStream} Concatenated array
+   */
+  concat: stream.concat,
+
+  /**
+   * Concat Uint8Arrays
    * @param {Array&lt;Uint8array>} Array of Uint8Arrays to concatenate
    * @returns {Uint8array} Concatenated array
    */
-  concatUint8Array: function (arrays) {
-    let totalLength = 0;
-    for (let i = 0; i &lt; arrays.length; i++) {
-      if (!util.isUint8Array(arrays[i])) {
-        throw new Error('concatUint8Array: Data must be in the form of a Uint8Array');
-      }
-
-      totalLength += arrays[i].length;
-    }
-
-    const result = new Uint8Array(totalLength);
-    let pos = 0;
-    arrays.forEach(function (element) {
-      result.set(element, pos);
-      pos += element.length;
-    });
-
-    return result;
-  },
-
-  /**
-   * Deep copy Uint8Array
-   * @param {Uint8Array} Array to copy
-   * @returns {Uint8Array} new Uint8Array
-   */
-  copyUint8Array: function (array) {
-    if (!util.isUint8Array(array)) {
-      throw new Error('Data must be in the form of a Uint8Array');
-    }
-
-    const copy = new Uint8Array(array.length);
-    copy.set(array);
-    return copy;
-  },
+  concatUint8Array: stream.concatUint8Array,
 
   /**
    * Check Uint8Array equality
@@ -435,6 +472,18 @@ export default {
     if (config.debug) {
       console.error(error);
     }
+  },
+
+  /**
+   * Read a stream to the end and print it to the console when it's closed.
+   * @param {String} str String of the debug message
+   * @param {ReadableStream|Uint8array|String} input Stream to print
+   * @param {Function} concat Function to concatenate chunks of the stream (defaults to util.concat).
+   */
+  print_entire_stream: function (str, input, concat) {
+    stream.readToEnd(stream.clone(input), concat).then(result => {
+      console.log(str + ': ', result);
+    });
   },
 
   getLeftNBits: function (array, bitcount) {
@@ -560,16 +609,40 @@ export default {
   },
 
   /**
+   * Get native Node.js module
+   * @param {String}     The module to require
+   * @returns {Object}   The required module or 'undefined'
+   */
+  nodeRequire: function(module) {
+    if (!util.detectNode()) {
+      return;
+    }
+
+    // Requiring the module dynamically allows us to access the native node module.
+    // otherwise, it gets replaced with the browserified version
+    // eslint-disable-next-line import/no-dynamic-require
+    return require(module);
+  },
+
+  /**
    * Get native Node.js crypto api. The default configuration is to use
    * the api when available. But it can also be deactivated with config.use_native
    * @returns {Object}   The crypto module or 'undefined'
    */
   getNodeCrypto: function() {
-    if (!util.detectNode() || !config.use_native) {
+    if (!config.use_native) {
       return;
     }
 
-    return require('crypto');
+    return util.nodeRequire('crypto');
+  },
+
+  getNodeZlib: function() {
+    if (!config.use_native) {
+      return;
+    }
+
+    return util.nodeRequire('zlib');
   },
 
   /**
@@ -578,22 +651,20 @@ export default {
    * @returns {Function}   The Buffer constructor or 'undefined'
    */
   getNodeBuffer: function() {
-    if (!util.detectNode()) {
-      return;
-    }
-
-    // This "hack" allows us to access the native node buffer module.
-    // otherwise, it gets replaced with the browserified version
-    // eslint-disable-next-line no-useless-concat, import/no-dynamic-require
-    return require('buf'+'fer').Buffer;
+    return (util.nodeRequire('buffer') || {}).Buffer;
   },
 
-  getNodeZlib: function() {
-    if (!util.detectNode() || !config.use_native) {
-      return;
+  getNodeStream: function() {
+    return (util.nodeRequire('stream') || {}).Readable;
+  },
+
+  getHardwareConcurrency: function() {
+    if (util.detectNode()) {
+      const os = util.nodeRequire('os');
+      return os.cpus().length;
     }
 
-    return require('zlib');
+    return navigator.hardwareConcurrency || 1;
   },
 
   isEmailAddress: function(data) {
@@ -634,14 +705,24 @@ export default {
    * Normalize line endings to \r\n
    */
   canonicalizeEOL: function(text) {
-    return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n/g, "\r\n");
+    return stream.transform(util.nativeEOL(text), value => value.replace(/\r/g, "\n").replace(/\n/g, "\r\n"));
   },
 
   /**
    * Convert line endings from canonicalized \r\n to native \n
    */
   nativeEOL: function(text) {
-    return text.replace(/\r\n/g, "\n");
+    let lastChar = '';
+    return stream.transform(text, value => {
+      value = lastChar + value;
+      if (value[value.length - 1] === '\r') {
+        lastChar = '\r';
+        value = value.slice(0, -1);
+      } else {
+        lastChar = '';
+      }
+      return value.replace(/\r\n/g, '\n');
+    }, () => lastChar);
   },
 
   /**
@@ -697,13 +778,13 @@ export default {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-polyfills.html">polyfills</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jul 19 2018 18:30:56 GMT+0200 (DST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Aug 14 2018 19:14:28 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>

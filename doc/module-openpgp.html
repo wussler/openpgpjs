@@ -127,6 +127,8 @@ for extending and developing on top of the base library.</p></div>
         <h3 class="subsection-title">Requires</h3>
 
         <ul>
+            <li>module:web-stream-tools</li>
+        
             <li><a href="module-message.html">module:message</a></li>
         
             <li><a href="module-cleartext.html">module:cleartext</a></li>
@@ -139,7 +141,7 @@ for extending and developing on top of the base library.</p></div>
         
             <li><a href="module-util.html">module:util</a></li>
         
-            <li>module:polyfills</li>
+            <li><a href="module-polyfills.html">module:polyfills</a></li>
         
             <li><a href="module-worker_async_proxy.html">module:worker/async_proxy</a></li>
         </ul>
@@ -198,7 +200,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line103">line 103</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line109">line 109</a>
     </li></ul></dd>
     
 
@@ -263,7 +265,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line133">line 133</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line139">line 139</a>
     </li></ul></dd>
     
 
@@ -393,7 +395,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line115">line 115</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line121">line 121</a>
     </li></ul></dd>
     
 
@@ -458,7 +460,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line121">line 121</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line127">line 127</a>
     </li></ul></dd>
     
 
@@ -588,7 +590,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line109">line 109</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line115">line 115</a>
     </li></ul></dd>
     
 
@@ -653,7 +655,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line139">line 139</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line145">line 145</a>
     </li></ul></dd>
     
 
@@ -913,7 +915,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line127">line 127</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line133">line 133</a>
     </li></ul></dd>
     
 
@@ -1328,6 +1330,71 @@ for extending and developing on top of the base library.</p></div>
 
         
             
+<h4 class="name" id=".stream"><span class="type-signature">(static) </span>stream<span class="type-signature"></span></h4>
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line103">line 103</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+    <dt class="tag-see">See:</dt>
+    <dd class="tag-see">
+        <ul>
+            <li>streams</li>
+        </ul>
+    </dd>
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id=".util"><span class="type-signature">(static) </span>util<span class="type-signature"></span></h4>
 
 
@@ -1433,7 +1500,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="index.js.html">index.js</a>, <a href="index.js.html#line145">line 145</a>
+        <a href="index.js.html">index.js</a>, <a href="index.js.html#line151">line 151</a>
     </li></ul></dd>
     
 
@@ -1468,7 +1535,7 @@ for extending and developing on top of the base library.</p></div>
     
 
     
-    <h4 class="name" id=".decrypt"><span class="type-signature">(async, static) </span>decrypt<span class="signature">(message, privateKeys, passwords, sessionKeys, publicKeys, format, signature, date)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
+    <h4 class="name" id=".decrypt"><span class="type-signature">(async, static) </span>decrypt<span class="signature">(message, privateKeys, passwords, sessionKeys, publicKeys, format, streaming, signature, date)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
     
 
     
@@ -1663,6 +1730,35 @@ for extending and developing on top of the base library.</p></div>
 
         <tr>
             
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">'web'</span>
+|
+
+<span class="param-type">'node'</span>
+|
+
+<span class="param-type">false</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to return data as a stream. Defaults to the type of stream <code>message</code> was created from, if any.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>signature</code></td>
             
 
@@ -1743,7 +1839,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line353">line 353</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line368">line 368</a>
     </li></ul></dd>
     
 
@@ -1770,8 +1866,19 @@ for extending and developing on top of the base library.</p></div>
 
         
 <div class="param-desc">
-    <p>decrypted and verified message in the form:
-                                        { data:Uint8Array|String, filename:String, signatures:[{ keyid:String, valid:Boolean }] }</p>
+    <p>Object containing decrypted and verified message in the form:</p>
+<pre class="prettyprint source"><code>{
+  data: String|ReadableStream&lt;String>|NodeStream, (if format was 'utf8', the default)
+  data: Uint8Array|ReadableStream&lt;Uint8Array>|NodeStream, (if format was 'binary')
+  filename: String,
+  signatures: [
+    {
+      keyid: module:type/keyid,
+      verified: Promise&lt;Boolean>,
+      valid: Boolean (if streaming was false)
+    }, ...
+  ]
+}</code></pre>
 </div>
 
 
@@ -1927,7 +2034,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line233">line 233</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line231">line 231</a>
     </li></ul></dd>
     
 
@@ -2137,7 +2244,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line503">line 503</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line542">line 542</a>
     </li></ul></dd>
     
 
@@ -2247,7 +2354,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line87">line 87</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line85">line 85</a>
     </li></ul></dd>
     
 
@@ -2281,7 +2388,7 @@ for extending and developing on top of the base library.</p></div>
     
 
     
-    <h4 class="name" id=".encrypt"><span class="type-signature">(async, static) </span>encrypt<span class="signature">(data, dataType, publicKeys, privateKeys, passwords, sessionKey, filename, compression, armor, detached, signature, returnSessionKey, wildcard, date, fromUserId, toUserId)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
+    <h4 class="name" id=".encrypt"><span class="type-signature">(async, static) </span>encrypt<span class="signature">(message, publicKeys, privateKeys, passwords, sessionKey, compression, armor, streaming, detached, signature, returnSessionKey, wildcard, date, fromUserId, toUserId)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
     
 
     
@@ -2326,16 +2433,13 @@ for extending and developing on top of the base library.</p></div>
 
         <tr>
             
-                <td class="name"><code>data</code></td>
+                <td class="name"><code>message</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">String</span>
-|
-
-<span class="param-type">Uint8Array</span>
+<span class="param-type">Message</span>
 
 
             
@@ -2345,39 +2449,7 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>text/data to be encrypted as JavaScript binary string or Uint8Array</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>dataType</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">utf8</span>
-|
-
-<span class="param-type">binary</span>
-|
-
-<span class="param-type">text</span>
-|
-
-<span class="param-type">mime</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>(optional) data packet type</p></td>
+            <td class="description last"><p>message to be encrypted as created by openpgp.message.fromText or openpgp.message.fromBinary</p></td>
         </tr>
 
     
@@ -2485,29 +2557,6 @@ for extending and developing on top of the base library.</p></div>
 
         <tr>
             
-                <td class="name"><code>filename</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>(optional) a filename for the literal data packet</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
                 <td class="name"><code>compression</code></td>
             
 
@@ -2548,6 +2597,35 @@ for extending and developing on top of the base library.</p></div>
             
 
             <td class="description last"><p>(optional) if the return values should be ascii armored or the message/signature objects</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">'web'</span>
+|
+
+<span class="param-type">'node'</span>
+|
+
+<span class="param-type">false</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to return data as a stream. Defaults to the type of stream <code>message</code> was created from, if any.</p></td>
         </tr>
 
     
@@ -2662,7 +2740,7 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>(optional) override the creation date of the message and the message signature</p></td>
+            <td class="description last"><p>(optional) override the creation date of the message signature</p></td>
         </tr>
 
     
@@ -2749,7 +2827,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line301">line 301</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line304">line 304</a>
     </li></ul></dd>
     
 
@@ -2776,9 +2854,14 @@ for extending and developing on top of the base library.</p></div>
 
         
 <div class="param-desc">
-    <p>encrypted (and optionally signed message) in the form:
-                                                 {data: ASCII armored message if 'armor' is true,
-                                                 message: full Message object if 'armor' is false, signature: detached signature if 'detached' is true}</p>
+    <p>Object containing encrypted (and optionally signed) message in the form:</p>
+<pre class="prettyprint source"><code>{
+  data: String|ReadableStream&lt;String>|NodeStream, (if `armor` was true, the default)
+  message: Message, (if `armor` was false)
+  signature: String|ReadableStream&lt;String>|NodeStream, (if `detached` was true and `armor` was true)
+  signature: Signature (if `detached` was true and `armor` was false)
+  sessionKey: { data, algorithm, aeadAlgorithm } (if `returnSessionKey` was true)
+}</code></pre>
 </div>
 
 
@@ -2934,7 +3017,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line254">line 254</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line252">line 252</a>
     </li></ul></dd>
     
 
@@ -3259,7 +3342,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line477">line 477</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line516">line 516</a>
     </li></ul></dd>
     
 
@@ -3557,7 +3640,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line117">line 117</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line115">line 115</a>
     </li></ul></dd>
     
 
@@ -3666,7 +3749,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line80">line 80</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line78">line 78</a>
     </li></ul></dd>
     
 
@@ -3872,7 +3955,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line69">line 69</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line67">line 67</a>
     </li></ul></dd>
     
 
@@ -4099,7 +4182,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line155">line 155</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line153">line 153</a>
     </li></ul></dd>
     
 
@@ -4376,7 +4459,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line192">line 192</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line190">line 190</a>
     </li></ul></dd>
     
 
@@ -4434,7 +4517,7 @@ for extending and developing on top of the base library.</p></div>
     
 
     
-    <h4 class="name" id=".sign"><span class="type-signature">(async, static) </span>sign<span class="signature">(data, dataType, privateKeys, armor, detached, date, fromUserId)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
+    <h4 class="name" id=".sign"><span class="type-signature">(async, static) </span>sign<span class="signature">(message, privateKeys, armor, streaming, detached, date, fromUserId)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
     
 
     
@@ -4478,16 +4561,16 @@ for extending and developing on top of the base library.</p></div>
 
         <tr>
             
-                <td class="name"><code>data</code></td>
+                <td class="name"><code>message</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">String</span>
+<span class="param-type">CleartextMessage</span>
 |
 
-<span class="param-type">Uint8Array</span>
+<span class="param-type">Message</span>
 
 
             
@@ -4497,39 +4580,7 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>cleartext input to be signed</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>dataType</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">utf8</span>
-|
-
-<span class="param-type">binary</span>
-|
-
-<span class="param-type">text</span>
-|
-
-<span class="param-type">mime</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>(optional) data packet type</p></td>
+            <td class="description last"><p>(cleartext) message to be signed</p></td>
         </tr>
 
     
@@ -4585,6 +4636,35 @@ for extending and developing on top of the base library.</p></div>
 
         <tr>
             
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">'web'</span>
+|
+
+<span class="param-type">'node'</span>
+|
+
+<span class="param-type">false</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to return data as a stream. Defaults to the type of stream <code>message</code> was created from, if any.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>detached</code></td>
             
 
@@ -4624,7 +4704,7 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>(optional) override the creation date signature</p></td>
+            <td class="description last"><p>(optional) override the creation date of the signature</p></td>
         </tr>
 
     
@@ -4688,7 +4768,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line396">line 396</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line424">line 424</a>
     </li></ul></dd>
     
 
@@ -4715,9 +4795,15 @@ for extending and developing on top of the base library.</p></div>
 
         
 <div class="param-desc">
-    <p>signed cleartext in the form:
-                                               {data: ASCII armored message if 'armor' is true,
-                                               message: full Message object if 'armor' is false, signature: detached signature if 'detached' is true}</p>
+    <p>Object containing signed message in the form:</p>
+<pre class="prettyprint source"><code>{
+  data: String|ReadableStream&lt;String>|NodeStream, (if `armor` was true, the default)
+  message: Message (if `armor` was false)
+}</code></pre><p>Or, if <code>detached</code> was true:</p>
+<pre class="prettyprint source"><code>{
+  signature: String|ReadableStream&lt;String>|NodeStream, (if `armor` was true, the default)
+  signature: Signature (if `armor` was false)
+}</code></pre>
 </div>
 
 
@@ -4746,7 +4832,7 @@ for extending and developing on top of the base library.</p></div>
     
 
     
-    <h4 class="name" id=".verify"><span class="type-signature">(async, static) </span>verify<span class="signature">(publicKeys, message, signature, date)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
+    <h4 class="name" id=".verify"><span class="type-signature">(async, static) </span>verify<span class="signature">(publicKeys, message, streaming, signature, date)</span><span class="type-signature"> &rarr; {Promise.&lt;Object>}</span></h4>
     
 
     
@@ -4823,6 +4909,9 @@ for extending and developing on top of the base library.</p></div>
             
                 
 <span class="param-type">CleartextMessage</span>
+|
+
+<span class="param-type">Message</span>
 
 
             
@@ -4832,7 +4921,36 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>cleartext message object with signatures</p></td>
+            <td class="description last"><p>(cleartext) message object with signatures</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">'web'</span>
+|
+
+<span class="param-type">'node'</span>
+|
+
+<span class="param-type">false</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to return data as a stream. Defaults to the type of stream <code>message</code> was created from, if any.</p></td>
         </tr>
 
     
@@ -4919,7 +5037,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line436">line 436</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line474">line 474</a>
     </li></ul></dd>
     
 
@@ -4946,8 +5064,18 @@ for extending and developing on top of the base library.</p></div>
 
         
 <div class="param-desc">
-    <p>cleartext with status of verified signatures in the form of:
-                                      { data:String, signatures: [{ keyid:String, valid:Boolean }] }</p>
+    <p>Object containing verified message in the form:</p>
+<pre class="prettyprint source"><code>{
+  data: String|ReadableStream&lt;String>|NodeStream, (if `message` was a CleartextMessage)
+  data: Uint8Array|ReadableStream&lt;Uint8Array>|NodeStream, (if `message` was a Message)
+  signatures: [
+    {
+      keyid: module:type/keyid,
+      verified: Promise&lt;Boolean>,
+      valid: Boolean (if `streaming` was false)
+    }, ...
+  ]
+}</code></pre>
 </div>
 
 
@@ -5028,7 +5156,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line528">line 528</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line567">line 567</a>
     </li></ul></dd>
     
 
@@ -5062,7 +5190,7 @@ for extending and developing on top of the base library.</p></div>
     
 
     
-    <h4 class="name" id="~createMessage"><span class="type-signature">(inner) </span>createMessage<span class="signature">(data, filename, date, type)</span><span class="type-signature"> &rarr; {Message}</span></h4>
+    <h4 class="name" id="~convertStream"><span class="type-signature">(async, inner) </span>convertStream<span class="signature">(data, streaming)</span><span class="type-signature"> &rarr; {Object}</span></h4>
     
 
     
@@ -5070,7 +5198,7 @@ for extending and developing on top of the base library.</p></div>
 
 
 <div class="description">
-    <p>Creates a message obejct either from a Uint8Array or a string.</p>
+    <p>Convert data to or from Stream</p>
 </div>
 
 
@@ -5112,10 +5240,7 @@ for extending and developing on top of the base library.</p></div>
             <td class="type">
             
                 
-<span class="param-type">String</span>
-|
-
-<span class="param-type">Uint8Array</span>
+<span class="param-type">Object</span>
 
 
             
@@ -5125,20 +5250,26 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>the payload for the message</p></td>
+            <td class="description last"><p>the data to convert</p></td>
         </tr>
 
     
 
         <tr>
             
-                <td class="name"><code>filename</code></td>
+                <td class="name"><code>streaming</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">String</span>
+<span class="param-type">'web'</span>
+|
+
+<span class="param-type">'node'</span>
+|
+
+<span class="param-type">false</span>
 
 
             
@@ -5148,62 +5279,7 @@ for extending and developing on top of the base library.</p></div>
 
             
 
-            <td class="description last"><p>the literal data packet's filename</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>date</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Date</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>the creation date of the package</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>type</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">utf8</span>
-|
-
-<span class="param-type">binary</span>
-|
-
-<span class="param-type">text</span>
-|
-
-<span class="param-type">mime</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>(optional) data packet type</p></td>
+            <td class="description last"><p>(optional) whether to return a ReadableStream</p></td>
         </tr>
 
     
@@ -5244,7 +5320,7 @@ for extending and developing on top of the base library.</p></div>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line574">line 574</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line606">line 606</a>
     </li></ul></dd>
     
 
@@ -5271,7 +5347,7 @@ for extending and developing on top of the base library.</p></div>
 
         
 <div class="param-desc">
-    <p>a message object</p>
+    <p>the data in the respective format</p>
 </div>
 
 
@@ -5282,7 +5358,416 @@ for extending and developing on top of the base library.</p></div>
     </dt>
     <dd>
         
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~convertStreams"><span class="type-signature">(async, inner) </span>convertStreams<span class="signature">(obj, streaming, keys)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Convert object properties from Stream</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>obj</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>the data to convert</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">'web'</span>
+|
+
+<span class="param-type">'node'</span>
+|
+
+<span class="param-type">false</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to return ReadableStreams</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>keys</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;String></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) which keys to return as streams, if possible</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line631">line 631</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>the data in the respective format</p>
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="~linkStreams"><span class="type-signature">(inner) </span>linkStreams<span class="signature">(result, message, erroringStream)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    <p>Link result.data to the message stream for cancellation.
+Also, forward errors in the message to result.data.</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>result</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>the data to convert</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>message</code></td>
+            
+
+            <td class="type">
+            
+                
 <span class="param-type">Message</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>message object</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>erroringStream</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">ReadableStream</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) stream which either errors or gets closed without data</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line652">line 652</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
 
 
     </dd>
@@ -5355,7 +5840,7 @@ browsers support. OCB and CFB are not natively supported.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line631">line 631</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line704">line 704</a>
     </li></ul></dd>
     
 
@@ -5535,7 +6020,7 @@ browsers support. OCB and CFB are not natively supported.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line612">line 612</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line685">line 685</a>
     </li></ul></dd>
     
 
@@ -5569,7 +6054,7 @@ browsers support. OCB and CFB are not natively supported.</p>
     
 
     
-    <h4 class="name" id="~parseMessage"><span class="type-signature">(inner) </span>parseMessage<span class="signature">(message, format)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    <h4 class="name" id="~prepareSignatures"><span class="type-signature">(async, inner) </span>prepareSignatures<span class="signature">(signatures)</span><span class="type-signature"></span></h4>
     
 
     
@@ -5577,7 +6062,7 @@ browsers support. OCB and CFB are not natively supported.</p>
 
 
 <div class="description">
-    <p>Parse the message given a certain format.</p>
+    <p>Wait until signature objects have been verified</p>
 </div>
 
 
@@ -5613,13 +6098,13 @@ browsers support. OCB and CFB are not natively supported.</p>
 
         <tr>
             
-                <td class="name"><code>message</code></td>
+                <td class="name"><code>signatures</code></td>
             
 
             <td class="type">
             
                 
-<span class="param-type">Message</span>
+<span class="param-type">Object</span>
 
 
             
@@ -5629,30 +6114,7 @@ browsers support. OCB and CFB are not natively supported.</p>
 
             
 
-            <td class="description last"><p>the message object to be parse</p></td>
-        </tr>
-
-    
-
-        <tr>
-            
-                <td class="name"><code>format</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>the output format e.g. 'utf8' or 'binary'</p></td>
+            <td class="description last"><p>list of signatures</p></td>
         </tr>
 
     
@@ -5693,7 +6155,7 @@ browsers support. OCB and CFB are not natively supported.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line592">line 592</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line672">line 672</a>
     </li></ul></dd>
     
 
@@ -5716,28 +6178,6 @@ browsers support. OCB and CFB are not natively supported.</p>
 
 
 
-<h5>Returns:</h5>
-
-        
-<div class="param-desc">
-    <p>the parse data in the respective format</p>
-</div>
-
-
-
-<dl>
-    <dt>
-        Type
-    </dt>
-    <dd>
-        
-<span class="param-type">Object</span>
-
-
-    </dd>
-</dl>
-
-    
 
 
 
@@ -5850,7 +6290,7 @@ browsers support. OCB and CFB are not natively supported.</p>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line559">line 559</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line593">line 593</a>
     </li></ul></dd>
     
 
@@ -5919,13 +6359,13 @@ browsers support. OCB and CFB are not natively supported.</p>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-polyfills.html">polyfills</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jul 19 2018 18:30:56 GMT+0200 (DST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Aug 14 2018 19:14:28 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -45,12 +45,17 @@
 
 /**
  * @requires asmcrypto.js
+ * @requires web-stream-tools
+ * @requires config
  * @requires crypto
  * @requires enums
  * @requires util
  */
 
-import { AES_CFB } from 'asmcrypto.js/src/aes/cfb/exports';
+import { AES_CFB } from 'asmcrypto.js/dist_es5/aes/cfb';
+
+import stream from 'web-stream-tools';
+import config from '../config';
 import crypto from '../crypto';
 import enums from '../enums';
 import util from '../util';
@@ -87,45 +92,51 @@ function SymEncryptedIntegrityProtected() {
   this.packets = null;
 }
 
-SymEncryptedIntegrityProtected.prototype.read = function (bytes) {
-  // - A one-octet version number. The only currently defined value is 1.
-  if (bytes[0] !== VERSION) {
-    throw new Error('Invalid packet version.');
-  }
+SymEncryptedIntegrityProtected.prototype.read = async function (bytes) {
+  await stream.parse(bytes, async reader => {
 
-  // - Encrypted data, the output of the selected symmetric-key cipher
-  //   operating in Cipher Feedback mode with shift amount equal to the
-  //   block size of the cipher (CFB-n where n is the block size).
-  this.encrypted = bytes.subarray(1, bytes.length);
+    // - A one-octet version number. The only currently defined value is 1.
+    if (await reader.readByte() !== VERSION) {
+      throw new Error('Invalid packet version.');
+    }
+
+    // - Encrypted data, the output of the selected symmetric-key cipher
+    //   operating in Cipher Feedback mode with shift amount equal to the
+    //   block size of the cipher (CFB-n where n is the block size).
+    this.encrypted = reader.remainder();
+  });
 };
 
 SymEncryptedIntegrityProtected.prototype.write = function () {
-  return util.concatUint8Array([new Uint8Array([VERSION]), this.encrypted]);
+  return util.concat([new Uint8Array([VERSION]), this.encrypted]);
 };
 
 /**
  * Encrypt the payload in the packet.
  * @param  {String} sessionKeyAlgorithm   The selected symmetric encryption algorithm to be used e.g. 'aes128'
  * @param  {Uint8Array} key               The key of cipher blocksize length to be used
+ * @param  {Boolean} streaming            Whether to set this.encrypted to a stream
  * @returns {Promise&lt;Boolean>}
  * @async
  */
-SymEncryptedIntegrityProtected.prototype.encrypt = async function (sessionKeyAlgorithm, key) {
-  const bytes = this.packets.write();
+SymEncryptedIntegrityProtected.prototype.encrypt = async function (sessionKeyAlgorithm, key, streaming) {
+  let bytes = this.packets.write();
+  if (!streaming) bytes = await stream.readToEnd(bytes);
   const prefixrandom = await crypto.getPrefixRandom(sessionKeyAlgorithm);
   const repeat = new Uint8Array([prefixrandom[prefixrandom.length - 2], prefixrandom[prefixrandom.length - 1]]);
-  const prefix = util.concatUint8Array([prefixrandom, repeat]);
+  const prefix = util.concat([prefixrandom, repeat]);
   const mdc = new Uint8Array([0xD3, 0x14]); // modification detection code packet
 
-  let tohash = util.concatUint8Array([bytes, mdc]);
-  const hash = crypto.hash.sha1(util.concatUint8Array([prefix, tohash]));
-  tohash = util.concatUint8Array([tohash, hash]);
+  let tohash = util.concat([bytes, mdc]);
+  const hash = crypto.hash.sha1(util.concat([prefix, stream.passiveClone(tohash)]));
+  tohash = util.concat([tohash, hash]);
 
   if (sessionKeyAlgorithm.substr(0, 3) === 'aes') { // AES optimizations. Native code for node, asmCrypto for browser.
-    this.encrypted = aesEncrypt(sessionKeyAlgorithm, prefix, tohash, key);
+    this.encrypted = aesEncrypt(sessionKeyAlgorithm, util.concat([prefix, tohash]), key);
   } else {
+    tohash = await stream.readToEnd(tohash);
     this.encrypted = crypto.cfb.encrypt(prefixrandom, sessionKeyAlgorithm, tohash, key, false);
-    this.encrypted = this.encrypted.subarray(0, prefix.length + tohash.length);
+    this.encrypted = stream.slice(this.encrypted, 0, prefix.length + tohash.length);
   }
   return true;
 };
@@ -134,31 +145,43 @@ SymEncryptedIntegrityProtected.prototype.encrypt = async function (sessionKeyAlg
  * Decrypts the encrypted data contained in the packet.
  * @param  {String} sessionKeyAlgorithm   The selected symmetric encryption algorithm to be used e.g. 'aes128'
  * @param  {Uint8Array} key               The key of cipher blocksize length to be used
+ * @param  {Boolean} streaming            Whether to read this.encrypted as a stream
  * @returns {Promise&lt;Boolean>}
  * @async
  */
-SymEncryptedIntegrityProtected.prototype.decrypt = async function (sessionKeyAlgorithm, key) {
+SymEncryptedIntegrityProtected.prototype.decrypt = async function (sessionKeyAlgorithm, key, streaming) {
+  if (!streaming) this.encrypted = await stream.readToEnd(this.encrypted);
+  const encrypted = stream.clone(this.encrypted);
+  const encryptedClone = stream.passiveClone(encrypted);
   let decrypted;
   if (sessionKeyAlgorithm.substr(0, 3) === 'aes') { // AES optimizations. Native code for node, asmCrypto for browser.
-    decrypted = aesDecrypt(sessionKeyAlgorithm, this.encrypted, key);
+    decrypted = aesDecrypt(sessionKeyAlgorithm, encrypted, key, streaming);
   } else {
-    decrypted = crypto.cfb.decrypt(sessionKeyAlgorithm, key, this.encrypted, false);
+    decrypted = crypto.cfb.decrypt(sessionKeyAlgorithm, key, await stream.readToEnd(encrypted), false);
   }
 
   // there must be a modification detection code packet as the
   // last packet and everything gets hashed except the hash itself
-  const prefix = crypto.cfb.mdc(sessionKeyAlgorithm, key, this.encrypted);
-  const bytes = decrypted.subarray(0, decrypted.length - 20);
-  const tohash = util.concatUint8Array([prefix, bytes]);
-  this.hash = util.Uint8Array_to_str(crypto.hash.sha1(tohash));
-  const mdc = util.Uint8Array_to_str(decrypted.subarray(decrypted.length - 20, decrypted.length));
-
-  if (this.hash !== mdc) {
-    throw new Error('Modification detected.');
-  } else {
-    this.packets.read(decrypted.subarray(0, decrypted.length - 22));
+  const encryptedPrefix = await stream.readToEnd(stream.slice(encryptedClone, 0, crypto.cipher[sessionKeyAlgorithm].blockSize + 2));
+  const prefix = crypto.cfb.mdc(sessionKeyAlgorithm, key, encryptedPrefix);
+  const realHash = stream.slice(stream.passiveClone(decrypted), -20);
+  const bytes = stream.slice(decrypted, 0, -20);
+  const tohash = util.concat([prefix, stream.passiveClone(bytes)]);
+  const verifyHash = Promise.all([
+    stream.readToEnd(crypto.hash.sha1(tohash)),
+    stream.readToEnd(realHash)
+  ]).then(([hash, mdc]) => {
+    if (!util.equalsUint8Array(hash, mdc)) {
+      throw new Error('Modification detected.');
+    }
+    return new Uint8Array();
+  });
+  let packetbytes = stream.slice(bytes, 0, -2);
+  packetbytes = stream.concat([packetbytes, stream.fromAsync(() => verifyHash)]);
+  if (!util.isStream(encrypted) || !config.allow_unauthenticated_stream) {
+    packetbytes = await stream.readToEnd(packetbytes);
   }
-
+  await this.packets.read(packetbytes);
   return true;
 };
 
@@ -172,11 +195,12 @@ export default SymEncryptedIntegrityProtected;
 //////////////////////////
 
 
-function aesEncrypt(algo, prefix, pt, key) {
+function aesEncrypt(algo, pt, key) {
   if (nodeCrypto) { // Node crypto library.
-    return nodeEncrypt(algo, prefix, pt, key);
+    return nodeEncrypt(algo, pt, key);
   } // asm.js fallback
-  return AES_CFB.encrypt(util.concatUint8Array([prefix, pt]), key);
+  const cfb = new AES_CFB(key);
+  return stream.transform(pt, value => cfb.AES_Encrypt_process(value), () => cfb.AES_Encrypt_finish());
 }
 
 function aesDecrypt(algo, ct, key) {
@@ -184,26 +208,28 @@ function aesDecrypt(algo, ct, key) {
   if (nodeCrypto) { // Node crypto library.
     pt = nodeDecrypt(algo, ct, key);
   } else { // asm.js fallback
-    pt = AES_CFB.decrypt(ct, key);
+    if (util.isStream(ct)) {
+      const cfb = new AES_CFB(key);
+      pt = stream.transform(ct, value => cfb.AES_Decrypt_process(value), () => cfb.AES_Decrypt_finish());
+    } else {
+      pt = AES_CFB.decrypt(ct, key);
+    }
   }
-  return pt.subarray(crypto.cipher[algo].blockSize + 2, pt.length); // Remove random prefix
+  return stream.slice(pt, crypto.cipher[algo].blockSize + 2); // Remove random prefix
 }
 
-function nodeEncrypt(algo, prefix, pt, key) {
+function nodeEncrypt(algo, pt, key) {
   key = new Buffer(key);
   const iv = new Buffer(new Uint8Array(crypto.cipher[algo].blockSize));
   const cipherObj = new nodeCrypto.createCipheriv('aes-' + algo.substr(3, 3) + '-cfb', key, iv);
-  const ct = cipherObj.update(new Buffer(util.concatUint8Array([prefix, pt])));
-  return new Uint8Array(ct);
+  return stream.transform(pt, value => new Uint8Array(cipherObj.update(new Buffer(value))));
 }
 
 function nodeDecrypt(algo, ct, key) {
-  ct = new Buffer(ct);
   key = new Buffer(key);
   const iv = new Buffer(new Uint8Array(crypto.cipher[algo].blockSize));
   const decipherObj = new nodeCrypto.createDecipheriv('aes-' + algo.substr(3, 3) + '-cfb', key, iv);
-  const pt = decipherObj.update(ct);
-  return new Uint8Array(pt);
+  return stream.transform(ct, value => new Uint8Array(decipherObj.update(new Buffer(value))));
 }
 </code></pre>
         </article>
@@ -215,13 +241,13 @@ function nodeDecrypt(algo, ct, key) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-polyfills.html">polyfills</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jul 19 2018 18:30:56 GMT+0200 (DST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Aug 14 2018 19:14:28 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>

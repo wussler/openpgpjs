@@ -65,6 +65,11 @@ import util from './util';
  * @classdesc Class that represents an OpenPGP key. Must contain a primary key.
  * Can contain additional subkeys, signatures, user ids, user attributes.
  * @param  {module:packet.List} packetlist The packets that form this key
+ * @borrows module:packet.PublicKey#getKeyId as Key#getKeyId
+ * @borrows module:packet.PublicKey#getFingerprint as Key#getFingerprint
+ * @borrows module:packet.PublicKey#getAlgorithmInfo as Key#getAlgorithmInfo
+ * @borrows module:packet.PublicKey#getCreationTime as Key#getCreationTime
+ * @borrows module:packet.PublicKey#isDecrypted as Key#isDecrypted
  */
 export function Key(packetlist) {
   if (!(this instanceof Key)) {
@@ -180,10 +185,10 @@ Key.prototype.toPacketlist = function() {
 };
 
 /**
- * Returns packetlist containing all public or private subkey packets matching keyId;
- * If keyId is not present, returns all subkey packets.
+ * Returns an array containing all public or private subkeys matching keyId;
+ * If keyId is not present, returns all subkeys.
  * @param  {type/keyid} keyId
- * @returns {Array&lt;SubKey>}
+ * @returns {Array&lt;module:key~SubKey>}
  */
 Key.prototype.getSubkeys = function(keyId=null) {
   const subKeys = [];
@@ -196,10 +201,10 @@ Key.prototype.getSubkeys = function(keyId=null) {
 };
 
 /**
- * Returns a packetlist containing all public or private key packets matching keyId.
- * If keyId is not present, returns all key packets starting with the primary key.
+ * Returns an array containing all public or private keys matching keyId.
+ * If keyId is not present, returns all keys starting with the primary key.
  * @param  {type/keyid} keyId
- * @returns {Array&lt;Key|SubKey>}
+ * @returns {Array&lt;module:key.Key|module:key~SubKey>}
  */
 Key.prototype.getKeys = function(keyId=null) {
   const keys = [];
@@ -210,7 +215,7 @@ Key.prototype.getKeys = function(keyId=null) {
 };
 
 /**
- * Returns key IDs of all key packets
+ * Returns key IDs of all keys
  * @returns {Array&lt;module:type/keyid>}
  */
 Key.prototype.getKeyIds = function() {
@@ -223,7 +228,7 @@ Key.prototype.getKeyIds = function() {
  */
 Key.prototype.getUserIds = function() {
   return this.users.map(user => {
-    return user.userId ? util.encode_utf8(user.userId.userid) : null;
+    return user.userId ? user.userId.userid : null;
   }).filter(userid => userid !== null);
 };
 
@@ -276,7 +281,7 @@ Key.prototype.toPublic = function() {
 
 /**
  * Returns ASCII armored text of key
- * @returns {String} ASCII armor
+ * @returns {ReadableStream&lt;String>} ASCII armor
  */
 Key.prototype.armor = function() {
   const type = this.isPublic() ? enums.armor.public_key : enums.armor.private_key;
@@ -315,16 +320,15 @@ function isValidSigningKeyPacket(keyPacket, signature, date=new Date()) {
  * @param  {module:type/keyid} keyId, optional
  * @param  {Date} date use the given date for verification instead of the current time
  * @param  {Object} userId, optional user ID
- * @returns {Promise&lt;Key|SubKey|null>} key or null if no signing key has been found
+ * @returns {Promise&lt;module:key.Key|module:key~SubKey|null>} key or null if no signing key has been found
  * @async
  */
 Key.prototype.getSigningKey = async function (keyId=null, date=new Date(), userId={}) {
   const primaryKey = this.keyPacket;
   if (await this.verifyPrimaryKey(date, userId) === enums.keyStatus.valid) {
-    const subKeys = this.subKeys.slice().sort((a, b) => b.created - a.created);
+    const subKeys = this.subKeys.slice().sort((a, b) => b.keyPacket.created - a.keyPacket.created);
     for (let i = 0; i &lt; subKeys.length; i++) {
       if (!keyId || subKeys[i].getKeyId().equals(keyId)) {
-        // eslint-disable-next-line no-await-in-loop
         if (await subKeys[i].verify(primaryKey, date) === enums.keyStatus.valid) {
           const bindingSignature = getLatestSignature(subKeys[i].bindingSignatures, date);
           if (isValidSigningKeyPacket(subKeys[i].keyPacket, bindingSignature, date)) {
@@ -359,18 +363,16 @@ function isValidEncryptionKeyPacket(keyPacket, signature, date=new Date()) {
  * @param  {module:type/keyid} keyId, optional
  * @param  {Date}              date, optional
  * @param  {String}            userId, optional
- * @returns {Promise&lt;Key|SubKey|null>} key or null if no encryption key has been found
+ * @returns {Promise&lt;module:key.Key|module:key~SubKey|null>} key or null if no encryption key has been found
  * @async
  */
 Key.prototype.getEncryptionKey = async function(keyId, date=new Date(), userId={}) {
   const primaryKey = this.keyPacket;
   if (await this.verifyPrimaryKey(date, userId) === enums.keyStatus.valid) {
     // V4: by convention subkeys are preferred for encryption service
-    // V3: keys MUST NOT have subkeys
-    const subKeys = this.subKeys.slice().sort((a, b) => b.created - a.created);
+    const subKeys = this.subKeys.slice().sort((a, b) => b.keyPacket.created - a.keyPacket.created);
     for (let i = 0; i &lt; subKeys.length; i++) {
       if (!keyId || subKeys[i].getKeyId().equals(keyId)) {
-        // eslint-disable-next-line no-await-in-loop
         if (await subKeys[i].verify(primaryKey, date) === enums.keyStatus.valid) {
           const bindingSignature = getLatestSignature(subKeys[i].bindingSignatures, date);
           if (isValidEncryptionKeyPacket(subKeys[i].keyPacket, bindingSignature, date)) {
@@ -507,25 +509,23 @@ Key.prototype.verifyPrimaryKey = async function(date=new Date(), userId={}) {
  * @async
  */
 Key.prototype.getExpirationTime = async function(capabilities, keyId, userId) {
-  if (this.keyPacket.version === 3) {
-    return getExpirationTime(this.keyPacket);
+  const primaryUser = await this.getPrimaryUser(null);
+  if (!primaryUser) {
+    throw new Error('Could not find primary user');
   }
-  if (this.keyPacket.version >= 4) {
-    const primaryUser = await this.getPrimaryUser(null);
-    const selfCert = primaryUser.selfCertification;
-    const keyExpiry = getExpirationTime(this.keyPacket, selfCert);
-    const sigExpiry = selfCert.getExpirationTime();
-    let expiry = keyExpiry &lt; sigExpiry ? keyExpiry : sigExpiry;
-    if (capabilities === 'encrypt' || capabilities === 'encrypt_sign') {
-      const encryptExpiry = (await this.getEncryptionKey(keyId, null, userId)).getExpirationTime();
-      if (encryptExpiry &lt; expiry) expiry = encryptExpiry;
-    }
-    if (capabilities === 'sign' || capabilities === 'encrypt_sign') {
-      const signExpiry = (await this.getSigningKey(keyId, null, userId)).getExpirationTime();
-      if (signExpiry &lt; expiry) expiry = signExpiry;
-    }
-    return expiry;
+  const selfCert = primaryUser.selfCertification;
+  const keyExpiry = getExpirationTime(this.keyPacket, selfCert);
+  const sigExpiry = selfCert.getExpirationTime();
+  let expiry = keyExpiry &lt; sigExpiry ? keyExpiry : sigExpiry;
+  if (capabilities === 'encrypt' || capabilities === 'encrypt_sign') {
+    const encryptExpiry = (await this.getEncryptionKey(keyId, null, userId)).getExpirationTime();
+    if (encryptExpiry &lt; expiry) expiry = encryptExpiry;
   }
+  if (capabilities === 'sign' || capabilities === 'encrypt_sign') {
+    const signExpiry = (await this.getSigningKey(keyId, null, userId)).getExpirationTime();
+    if (signExpiry &lt; expiry) expiry = signExpiry;
+  }
+  return expiry;
 };
 
 /**
@@ -564,13 +564,11 @@ Key.prototype.getPrimaryUser = async function(date=new Date(), userId={}) {
   }).pop();
   const { user, selfCertification: cert } = primaryUser;
   const primaryKey = this.keyPacket;
-  const dataToVerify = { userid: user.userId , key: primaryKey };
+  const dataToVerify = { userId: user.userId, key: primaryKey };
   // skip if certificates is invalid, revoked, or expired
-  // eslint-disable-next-line no-await-in-loop
   if (!(cert.verified || await cert.verify(primaryKey, dataToVerify))) {
     return null;
   }
-  // eslint-disable-next-line no-await-in-loop
   if (cert.revoked || await user.isRevoked(primaryKey, cert, null, date)) {
     return null;
   }
@@ -588,6 +586,8 @@ Key.prototype.getPrimaryUser = async function(date=new Date(), userId={}) {
  * If the specified key is a private key and the destination key is public,
  * the destination key is transformed to a private key.
  * @param  {module:key.Key} key Source key to merge
+ * @returns {Promise&lt;undefined>}
+ * @async
  */
 Key.prototype.update = async function(key) {
   if (await key.verifyPrimaryKey() === enums.keyStatus.invalid) {
@@ -679,7 +679,8 @@ async function mergeSignatures(source, dest, attr, checkFn) {
  * @param  {module:enums.reasonForRevocation} reasonForRevocation.flag optional, flag indicating the reason for revocation
  * @param  {String} reasonForRevocation.string optional, string explaining the reason for revocation
  * @param  {Date} date optional, override the creationtime of the revocation signature
- * @return {module:key~Key} new key with revocation signature
+ * @returns {Promise&lt;module:key.Key>} new key with revocation signature
+ * @async
  */
 Key.prototype.revoke = async function({
   flag: reasonForRevocationFlag=enums.reasonForRevocation.no_reason,
@@ -701,7 +702,7 @@ Key.prototype.revoke = async function({
 /**
  * Get revocation certificate from a revoked key.
  *   (To get a revocation certificate for an unrevoked key, call revoke() first.)
- * @return {String} armored revocation certificate
+ * @returns {String} armored revocation certificate
  */
 Key.prototype.getRevocationCertificate = function() {
   if (this.revocationSignatures.length) {
@@ -716,12 +717,13 @@ Key.prototype.getRevocationCertificate = function() {
  * This adds the first signature packet in the armored text to the key,
  * if it is a valid revocation signature.
  * @param  {String} revocationCertificate armored revocation certificate
- * @return {module:key~Key} new revoked key
+ * @returns {Promise&lt;module:key.Key>} new revoked key
+ * @async
  */
 Key.prototype.applyRevocationCertificate = async function(revocationCertificate) {
-  const input = armor.decode(revocationCertificate);
+  const input = await armor.decode(revocationCertificate);
   const packetlist = new packet.List();
-  packetlist.read(input.data);
+  await packetlist.read(input.data);
   const revocationSignature = packetlist.findPacket(enums.packet.signature);
   if (!revocationSignature || revocationSignature.signatureType !== enums.signature.key_revocation) {
     throw new Error('Could not find revocation signature packet');
@@ -856,8 +858,12 @@ User.prototype.toPacketlist = function() {
  * @async
  */
 User.prototype.sign = async function(primaryKey, privateKeys) {
-  const dataToSign = { userid: this.userId || this.userAttribute, key: primaryKey };
-  const user = new User(dataToSign.userid);
+  const dataToSign = {
+    userId: this.userId,
+    userAttribute: this.userAttribute,
+    key: primaryKey
+  };
+  const user = new User(dataToSign.userId || dataToSign.userAttribute);
   user.otherCertifications = await Promise.all(privateKeys.map(async function(privateKey) {
     if (privateKey.isPublic()) {
       throw new Error('Need private key for signing');
@@ -897,7 +903,8 @@ User.prototype.isRevoked = async function(primaryKey, certificate, key, date=new
   return isDataRevoked(
     primaryKey, {
       key: primaryKey,
-      userid: this.userId || this.userAttribute
+      userId: this.userId,
+      userAttribute: this.userAttribute
     }, this.revocationSignatures, certificate, key, date
   );
 };
@@ -910,7 +917,7 @@ User.prototype.isRevoked = async function(primaryKey, certificate, key, date=new
  * @param  {Object} signatureProperties      (optional) properties to write on the signature packet before signing
  * @param  {Date} date                       (optional) override the creationtime of the signature
  * @param  {Object} userId                   (optional) user ID
- * @return {module:packet/signature}         signature packet
+ * @returns {module:packet/signature}         signature packet
  */
 export async function createSignaturePacket(dataToSign, privateKey, signingKeyPacket, signatureProperties, date, userId) {
   if (!signingKeyPacket.isDecrypted()) {
@@ -937,7 +944,11 @@ export async function createSignaturePacket(dataToSign, privateKey, signingKeyPa
 User.prototype.verifyCertificate = async function(primaryKey, certificate, keys, date=new Date()) {
   const that = this;
   const keyid = certificate.issuerKeyId;
-  const dataToVerify = { userid: this.userId || this.userAttribute, key: primaryKey };
+  const dataToVerify = {
+    userId: this.userId,
+    userAttribute: this.userAttribute,
+    key: primaryKey
+  };
   const results = await Promise.all(keys.map(async function(key) {
     if (!key.getKeyIds().some(id => id.equals(keyid))) { return; }
     const signingKey = await key.getSigningKey(keyid, date);
@@ -989,7 +1000,11 @@ User.prototype.verify = async function(primaryKey) {
     return enums.keyStatus.no_self_cert;
   }
   const that = this;
-  const dataToVerify = { userid: this.userId || this.userAttribute, key: primaryKey };
+  const dataToVerify = {
+    userId: this.userId,
+    userAttribute: this.userAttribute,
+    key: primaryKey
+  };
   // TODO replace when Promise.some or Promise.any are implemented
   const results = [enums.keyStatus.invalid].concat(
     await Promise.all(this.selfCertifications.map(async function(selfCertification) {
@@ -1013,9 +1028,15 @@ User.prototype.verify = async function(primaryKey) {
  * @param  {module:key.User}             user       Source user to merge
  * @param  {module:packet.SecretKey|
  *          module:packet.SecretSubkey} primaryKey primary key used for validation
+ * @returns {Promise&lt;undefined>}
+ * @async
  */
 User.prototype.update = async function(user, primaryKey) {
-  const dataToVerify = { userid: this.userId || this.userAttribute, key: primaryKey };
+  const dataToVerify = {
+    userId: this.userId,
+    userAttribute: this.userAttribute,
+    key: primaryKey
+  };
   // self signatures
   await mergeSignatures(user, this, 'selfCertifications', async function(srcSelfSig) {
     return srcSelfSig.verified || srcSelfSig.verify(primaryKey, dataToVerify);
@@ -1031,6 +1052,11 @@ User.prototype.update = async function(user, primaryKey) {
 /**
  * @class
  * @classdesc Class that represents a subkey packet and the relevant signatures.
+ * @borrows module:packet.PublicSubkey#getKeyId as SubKey#getKeyId
+ * @borrows module:packet.PublicSubkey#getFingerprint as SubKey#getFingerprint
+ * @borrows module:packet.PublicSubkey#getAlgorithmInfo as SubKey#getAlgorithmInfo
+ * @borrows module:packet.PublicSubkey#getCreationTime as SubKey#getCreationTime
+ * @borrows module:packet.PublicSubkey#isDecrypted as SubKey#isDecrypted
  */
 function SubKey(subKeyPacket) {
   if (!(this instanceof SubKey)) {
@@ -1087,10 +1113,6 @@ SubKey.prototype.isRevoked = async function(primaryKey, signature, key, date=new
 SubKey.prototype.verify = async function(primaryKey, date=new Date()) {
   const that = this;
   const dataToVerify = { key: primaryKey, bind: this.keyPacket };
-  // check for V3 expiration time
-  if (this.keyPacket.version === 3 &amp;&amp; isDataExpired(this.keyPacket, null, date)) {
-    return enums.keyStatus.expired;
-  }
   // check subkey binding signatures
   const bindingSignature = getLatestSignature(this.bindingSignatures, date);
   // check binding signature is verified
@@ -1122,9 +1144,11 @@ SubKey.prototype.getExpirationTime = function(date=new Date()) {
 
 /**
  * Update subkey with new components from specified subkey
- * @param  {module:key.SubKey}           subKey     Source subkey to merge
+ * @param  {module:key~SubKey}           subKey     Source subkey to merge
  * @param  {module:packet.SecretKey|
             module:packet.SecretSubkey} primaryKey primary key used for validation
+ * @returns {Promise&lt;undefined>}
+ * @async
  */
 SubKey.prototype.update = async function(subKey, primaryKey) {
   if (await subKey.verify(primaryKey) === enums.keyStatus.invalid) {
@@ -1168,7 +1192,8 @@ SubKey.prototype.update = async function(subKey, primaryKey) {
  * @param  {module:enums.reasonForRevocation} reasonForRevocation.flag optional, flag indicating the reason for revocation
  * @param  {String} reasonForRevocation.string optional, string explaining the reason for revocation
  * @param  {Date} date optional, override the creationtime of the revocation signature
- * @return {module:key~SubKey} new subkey with revocation signature
+ * @returns {Promise&lt;module:key~SubKey>} new subkey with revocation signature
+ * @async
  */
 SubKey.prototype.revoke = async function(primaryKey, {
   flag: reasonForRevocationFlag=enums.reasonForRevocation.no_reason,
@@ -1185,6 +1210,8 @@ SubKey.prototype.revoke = async function(primaryKey, {
   return subKey;
 };
 
+/**
+ */
 ['getKeyId', 'getFingerprint', 'getAlgorithmInfo', 'getCreationTime', 'isDecrypted'].forEach(name => {
   Key.prototype[name] =
   SubKey.prototype[name] =
@@ -1196,16 +1223,17 @@ SubKey.prototype.revoke = async function(primaryKey, {
 /**
  * Reads an unarmored OpenPGP key list and returns one or multiple key objects
  * @param {Uint8Array} data to be parsed
- * @returns {{keys: Array&lt;module:key.Key>,
- *            err: (Array&lt;Error>|null)}} result object with key and error arrays
+ * @returns {Promise&lt;{keys: Array&lt;module:key.Key>,
+ *            err: (Array&lt;Error>|null)}>} result object with key and error arrays
+ * @async
  * @static
  */
-export function read(data) {
+export async function read(data) {
   const result = {};
   result.keys = [];
   try {
     const packetlist = new packet.List();
-    packetlist.read(data);
+    await packetlist.read(data);
     const keyIndex = packetlist.indexOfTag(enums.packet.publicKey, enums.packet.secretKey);
     if (keyIndex.length === 0) {
       throw new Error('No key packet found');
@@ -1229,14 +1257,15 @@ export function read(data) {
 
 /**
  * Reads an OpenPGP armored text and returns one or multiple key objects
- * @param {String} armoredText text to be parsed
- * @returns {{keys: Array&lt;module:key.Key>,
- *            err: (Array&lt;Error>|null)}} result object with key and error arrays
+ * @param {String | ReadableStream&lt;String>} armoredText text to be parsed
+ * @returns {Promise&lt;{keys: Array&lt;module:key.Key>,
+ *            err: (Array&lt;Error>|null)}>} result object with key and error arrays
+ * @async
  * @static
  */
-export function readArmored(armoredText) {
+export async function readArmored(armoredText) {
   try {
-    const input = armor.decode(armoredText);
+    const input = await armor.decode(armoredText);
     if (!(input.type === enums.armor.public_key || input.type === enums.armor.private_key)) {
       throw new Error('Armored text not of type key');
     }
@@ -1419,7 +1448,7 @@ async function wrapKeyObject(secretKeyPacket, secretSubkeyPackets, options) {
     userIdPacket.format(userId);
 
     const dataToSign = {};
-    dataToSign.userid = userIdPacket;
+    dataToSign.userId = userIdPacket;
     dataToSign.key = secretKeyPacket;
     const signaturePacket = new packet.Signature(options.date);
     signaturePacket.signatureType = enums.signature.cert_generic;
@@ -1569,12 +1598,8 @@ function isDataExpired(keyPacket, signature, date=new Date()) {
 
 function getExpirationTime(keyPacket, signature) {
   let expirationTime;
-  // check V3 expiration time
-  if (keyPacket.version === 3 &amp;&amp; keyPacket.expirationTimeV3 !== 0) {
-    expirationTime = keyPacket.created.getTime() + keyPacket.expirationTimeV3*24*3600*1000;
-  }
   // check V4 expiration time
-  if (keyPacket.version >= 4 &amp;&amp; signature.keyNeverExpires === false) {
+  if (signature.keyNeverExpires === false) {
     expirationTime = keyPacket.created.getTime() + signature.keyExpirationTime*1000;
   }
   return expirationTime ? new Date(expirationTime) : Infinity;
@@ -1684,13 +1709,13 @@ export async function isAeadSupported(keys, date=new Date(), userId={}) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-polyfills.html">polyfills</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jul 19 2018 18:30:56 GMT+0200 (DST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Aug 14 2018 19:14:28 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -61,11 +61,15 @@
 <li><a href="#encrypt-and-decrypt-uint8array-data-with-a-password">Encrypt and decrypt <em>Uint8Array</em> data with a password</a></li>
 <li><a href="#encrypt-and-decrypt-string-data-with-pgp-keys">Encrypt and decrypt <em>String</em> data with PGP keys</a></li>
 <li><a href="#encrypt-with-compression">Encrypt with compression</a></li>
+<li><a href="#streaming-encrypt-uint8array-data-with-a-password">Streaming encrypt <em>Uint8Array</em> data with a password</a></li>
+<li><a href="#streaming-encrypt-and-decrypt-string-data-with-pgp-keys">Streaming encrypt and decrypt <em>String</em> data with PGP keys</a></li>
 <li><a href="#generate-new-key-pair">Generate new key pair</a></li>
+<li><a href="#revoke-a-key">Revoke a key</a></li>
 <li><a href="#lookup-public-key-on-hkp-server">Lookup public key on HKP server</a></li>
 <li><a href="#upload-public-key-to-hkp-server">Upload public key to HKP server</a></li>
 <li><a href="#sign-and-verify-cleartext-messages">Sign and verify cleartext messages</a></li>
 <li><a href="#create-and-verify-detached-signatures">Create and verify <em>detached</em> signatures</a></li>
+<li><a href="#streaming-sign-and-verify-uint8array-data">Streaming sign and verify <em>Uint8Array</em> data</a></li>
 </ul>
 </li>
 <li><a href="#documentation">Documentation</a></li>
@@ -80,11 +84,25 @@
 </ul>
 <!-- markdown-toc end -->
 <h3>Platform Support</h3><ul>
-<li><p>OpenPGP.js v3.x is written in ES7 but is transpiled to ES5 using <a href="https://babeljs.io/">Babel</a> to run in most environments. We support Node.js v8+ and browsers that implement <a href="https://caniuse.com/#feat=getrandomvalues">window.crypto.getRandomValues</a>.</p>
+<li><p>The <code>dist/openpgp.min.js</code> bundle works well with recent versions of Chrome, Firefox, Safari and Edge. It also works in Node.js 8+.</p>
 </li>
-<li><p>The API uses the Async/Await syntax introduced in ES7 to return Promise objects. Async functions are available in <a href="https://caniuse.com/#feat=async-functions">most modern browsers</a>. If you need to support older browsers, fear not! We use <a href="https://github.com/zloirock/core-js">core-js</a> to polyfill new features so that no action is required on your part!</p>
+<li><p>The <code>dist/compat/openpgp.min.js</code> bundle also works with Internet Explorer 11 and old versions of Safari. Please note that this bundle overwrites the global <code>Promise</code> with a polyfill version even in some cases where it already exists, which may cause issues. It also adds some builtin prototype functions if they don't exist, such as <code>Array.prototype.includes</code>.</p>
 </li>
-<li><p>For the OpenPGP HTTP Key Server (HKP) client the new <a href="https://caniuse.com/#feat=fetch">fetch API</a> is used. The module is polyfilled for <a href="https://github.com/github/fetch">browsers</a> and is included as a dependency for <a href="https://github.com/bitinn/node-fetch">Node.js</a> runtimes.</p>
+<li><p>If you wish, you could even load one or the other depending on which browser the user is using. However, if you're using the Web Worker, keep in mind that you also need to pass <code>{ path: 'compat/openpgp.worker.min.js' }</code> to <code>initWorker</code> whenever you load <code>compat/openpgp.min.js</code>.</p>
+</li>
+<li><p>Currently, Chrome, Safari and Edge have partial implementations of the
+<a href="https://streams.spec.whatwg.org/">Streams specification</a>, and Firefox
+has a partial implementation behind feature flags. Chrome is the only
+browser that implements <code>TransformStream</code>s, which we need, so we include
+a <a href="https://github.com/MattiasBuelens/web-streams-polyfill">polyfill</a> for
+all other browsers. Please note that in those browsers, the global
+<code>ReadableStream</code> property gets overwritten with the polyfill version if
+it exists. In some edge cases, you might need to use the native
+<code>ReadableStream</code> (for example when using it to create a <code>Response</code>
+object), in which case you should store a reference to it before loading
+OpenPGP.js. There is also the
+<a href="https://github.com/MattiasBuelens/web-streams-adapter">web-streams-adapter</a>
+library to convert back and forth between them.</p>
 </li>
 </ul>
 <h3>Performance</h3><ul>
@@ -121,15 +139,15 @@ openpgp.config.aead_mode = openpgp.enums.aead.experimental_gcm // **Non-standard
 openpgp.initWorker({ path:'openpgp.worker.js' }) // set the relative web worker path</code></pre><h4>Encrypt and decrypt <em>Uint8Array</em> data with a password</h4><pre class="prettyprint source lang-js"><code>var options, encrypted;
 
 options = {
-    data: new Uint8Array([0x01, 0x01, 0x01]), // input as Uint8Array (or String)
-    passwords: ['secret stuff'],              // multiple passwords possible
-    armor: false                              // don't ASCII armor (for Uint8Array output)
+    message: openpgp.message.fromBinary(new Uint8Array([0x01, 0x01, 0x01])), // input as Message object
+    passwords: ['secret stuff'],                                             // multiple passwords possible
+    armor: false                                                             // don't ASCII armor (for Uint8Array output)
 };
 
 openpgp.encrypt(options).then(function(ciphertext) {
     encrypted = ciphertext.message.packets.write(); // get raw encrypted packets as Uint8Array
 });</code></pre><pre class="prettyprint source lang-js"><code>options = {
-    message: openpgp.message.read(encrypted), // parse encrypted bytes
+    message: await openpgp.message.read(encrypted), // parse encrypted bytes
     passwords: ['secret stuff'],              // decrypt with password
     format: 'binary'                          // output as Uint8Array
 };
@@ -150,13 +168,13 @@ const privkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
 const passphrase = `yourPassphrase` //what the privKey is encrypted with
 
 const encryptDecryptFunction = async() => {
-    const privKeyObj = openpgp.key.readArmored(privkey).keys[0]
+    const privKeyObj = (await openpgp.key.readArmored(privkey)).keys[0]
     await privKeyObj.decrypt(passphrase)
 
     const options = {
-        data: 'Hello, World!',                             // input as String (or Uint8Array)
-        publicKeys: openpgp.key.readArmored(pubkey).keys,  // for encryption
-        privateKeys: [privKeyObj]                          // for signing (optional)
+        message: openpgp.message.fromText('Hello, World!'),       // input as Message object
+        publicKeys: (await openpgp.key.readArmored(pubkey)).keys, // for encryption
+        privateKeys: [privKeyObj]                                 // for signing (optional)
     }
 
     openpgp.encrypt(options).then(ciphertext => {
@@ -165,9 +183,9 @@ const encryptDecryptFunction = async() => {
     })
     .then(encrypted => {
         const options = {
-            message: openpgp.message.readArmored(encrypted),     // parse armored message
-            publicKeys: openpgp.key.readArmored(pubkey).keys,    // for verification (optional)
-            privateKeys: [privKeyObj]                            // for decryption
+            message: await openpgp.message.readArmored(encrypted),    // parse armored message
+            publicKeys: (await openpgp.key.readArmored(pubkey)).keys, // for verification (optional)
+            privateKeys: [privKeyObj]                                 // for decryption
         }
 
         openpgp.decrypt(options).then(plaintext => {
@@ -183,9 +201,9 @@ encryptDecryptFunction()</code></pre><h4>Encrypt with compression</h4><p>By defa
 <pre class="prettyprint source lang-js"><code>var options, encrypted;
 
 options = {
-    data: new Uint8Array([0x01, 0x02, 0x03]),    // input as Uint8Array (or String)
-    passwords: ['secret stuff'],                 // multiple passwords possible
-    compression: openpgp.enums.compression.zip   // compress the data with zip
+    message: openpgp.message.fromBinary(new Uint8Array([0x01, 0x02, 0x03])), // or .fromText('string')
+    passwords: ['secret stuff'],                                             // multiple passwords possible
+    compression: openpgp.enums.compression.zip                               // compress the data with zip
 };
 
 ciphertext = await openpgp.encrypt(options);     // use ciphertext</code></pre><p>Or, override the config to enable compression:</p>
@@ -195,7 +213,74 @@ ciphertext = await openpgp.encrypt(options);     // use ciphertext</code></pre><
 <li><code>openpgp.enums.compression.zlib</code></li>
 <li><code>openpgp.enums.compression.bzip2</code></li>
 </ul>
-<h4>Generate new key pair</h4><p>RSA keys:</p>
+<h4>Streaming encrypt <em>Uint8Array</em> data with a password</h4><pre class="prettyprint source lang-js"><code>const readableStream = new ReadableStream({
+    start(controller) {
+        controller.enqueue(new Uint8Array([0x01, 0x02, 0x03]));
+        controller.close();
+    }
+});
+
+const options = {
+    message: openpgp.message.fromBinary(readableStream), // input as Message object
+    passwords: ['secret stuff'],                         // multiple passwords possible
+    armor: false                                         // don't ASCII armor (for Uint8Array output)
+};
+
+openpgp.encrypt(options).then(async function(ciphertext) {
+    const encrypted = ciphertext.message.packets.write(); // get raw encrypted packets as ReadableStream&lt;Uint8Array>
+
+    // Either pipe the above stream somewhere, pass it to another function,
+    // or read it manually as follows:
+    const reader = openpgp.stream.getReader(encrypted);
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        console.log('new chunk:', value); // Uint8Array
+    }
+});</code></pre><p>For more information on creating ReadableStreams, see <a href="https://developer.mozilla.org/docs/Web/API/ReadableStream/ReadableStream">the MDN Documentation on <code>new
+ReadableStream()</code></a>.
+For more information on reading streams using <code>openpgp.stream</code>, see the documentation of
+<a href="https://openpgpjs.org/web-stream-tools/">the web-stream-tools dependency</a>, particularly
+its <a href="https://openpgpjs.org/web-stream-tools/Reader.html">Reader class</a>.</p>
+<h4>Streaming encrypt and decrypt <em>String</em> data with PGP keys</h4><pre class="prettyprint source lang-js"><code>(async () => {
+    let options;
+
+    const pubkey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+    ...
+    -----END PGP PUBLIC KEY BLOCK-----`; // Public key
+    const privkey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+    ...
+    -----END PGP PRIVATE KEY BLOCK-----`; // Encrypted private key
+    const passphrase = `yourPassphrase`; // Password that privKey is encrypted with
+
+    const privKeyObj = (await openpgp.key.readArmored(privkey)).keys[0];
+    await privKeyObj.decrypt(passphrase);
+
+    const readableStream = new ReadableStream({
+        start(controller) {
+            controller.enqueue('Hello, world!');
+            controller.close();
+        }
+    });
+
+    options = {
+        message: openpgp.message.fromText(readableStream),        // input as Message object
+        publicKeys: (await openpgp.key.readArmored(pubkey)).keys, // for encryption
+        privateKeys: [privKeyObj]                                 // for signing (optional)
+    };
+
+    const encrypted = await openpgp.encrypt(options);
+    const ciphertext = encrypted.data; // ReadableStream containing '-----BEGIN PGP MESSAGE ... END PGP MESSAGE-----'
+
+    options = {
+        message: await openpgp.message.readArmored(ciphertext),   // parse armored message
+        publicKeys: (await openpgp.key.readArmored(pubkey)).keys, // for verification (optional)
+        privateKeys: [privKeyObj]                                 // for decryption
+    };
+
+    const decrypted = await openpgp.decrypt(options);
+    const plaintext = await openpgp.stream.readToEnd(decrypted.data); // 'Hello, World!'
+})();</code></pre><h4>Generate new key pair</h4><p>RSA keys:</p>
 <pre class="prettyprint source lang-js"><code>var options = {
     userIds: [{ name:'Jon Smith', email:'jon@example.com' }], // multiple user IDs
     numBits: 4096,                                            // RSA key size
@@ -229,7 +314,7 @@ var options = {
 };
 
 hkp.lookup(options).then(function(key) {
-    var pubkey = openpgp.key.readArmored(key);
+    var pubkey = await openpgp.key.readArmored(key);
 });</code></pre><h4>Upload public key to HKP server</h4><pre class="prettyprint source lang-js"><code>var hkp = new openpgp.HKP('https://pgp.mit.edu');
 
 var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----';
@@ -240,17 +325,17 @@ var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----'
 var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----'; //encrypted private key
 var passphrase = 'secret passphrase'; //what the privKey is encrypted with
 
-var privKeyObj = openpgp.key.readArmored(privkey).keys[0];
+var privKeyObj = (await openpgp.key.readArmored(privkey)).keys[0];
 await privKeyObj.decrypt(passphrase);</code></pre><pre class="prettyprint source lang-js"><code>options = {
-    data: 'Hello, World!',                             // input as String (or Uint8Array)
-    privateKeys: [privKeyObj]                          // for signing
+    message: openpgp.cleartext.fromText('Hello, World!'), // CleartextMessage or Message object
+    privateKeys: [privKeyObj]                             // for signing
 };
 
 openpgp.sign(options).then(function(signed) {
     cleartext = signed.data; // '-----BEGIN PGP SIGNED MESSAGE ... END PGP SIGNATURE-----'
 });</code></pre><pre class="prettyprint source lang-js"><code>options = {
-    message: openpgp.cleartext.readArmored(cleartext), // parse armored message
-    publicKeys: openpgp.key.readArmored(pubkey).keys   // for verification
+    message: await openpgp.cleartext.readArmored(cleartext), // parse armored message
+    publicKeys: (await openpgp.key.readArmored(pubkey)).keys // for verification
 };
 
 openpgp.verify(options).then(function(verified) {
@@ -264,19 +349,19 @@ var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----'
 var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----'; //encrypted private key
 var passphrase = 'secret passphrase'; //what the privKey is encrypted with
 
-var privKeyObj = openpgp.key.readArmored(privkey).keys[0];
+var privKeyObj = (await openpgp.key.readArmored(privkey)).keys[0];
 await privKeyObj.decrypt(passphrase);</code></pre><pre class="prettyprint source lang-js"><code>options = {
-    data: 'Hello, World!',                             // input as String (or Uint8Array)
-    privateKeys: [privKeyObj],                         // for signing
+    message: openpgp.cleartext.fromText('Hello, World!'), // CleartextMessage or Message object
+    privateKeys: [privKeyObj],                            // for signing
     detached: true
 };
 
 openpgp.sign(options).then(function(signed) {
     detachedSig = signed.signature;
 });</code></pre><pre class="prettyprint source lang-js"><code>options = {
-    message: openpgp.message.fromText('Hello, World!'), // input as Message object
-    signature: openpgp.signature.readArmored(detachedSig), // parse detached signature
-    publicKeys: openpgp.key.readArmored(pubkey).keys   // for verification
+    message: openpgp.cleartext.fromText('Hello, World!'),        // CleartextMessage or Message object
+    signature: await openpgp.signature.readArmored(detachedSig), // parse detached signature
+    publicKeys: (await openpgp.key.readArmored(pubkey)).keys     // for verification
 };
 
 openpgp.verify(options).then(function(verified) {
@@ -284,7 +369,44 @@ openpgp.verify(options).then(function(verified) {
     if (validity) {
         console.log('signed by key id ' + verified.signatures[0].keyid.toHex());
     }
+});</code></pre><h4>Streaming sign and verify <em>Uint8Array</em> data</h4><pre class="prettyprint source lang-js"><code>var readableStream = new ReadableStream({
+    start(controller) {
+        controller.enqueue(new Uint8Array([0x01, 0x02, 0x03]));
+        controller.close();
+    }
+});
+
+var options, signedArmor, validity;
+
+var pubkey = '-----BEGIN PGP PUBLIC KEY BLOCK ... END PGP PUBLIC KEY BLOCK-----';
+var privkey = '-----BEGIN PGP PRIVATE KEY BLOCK ... END PGP PRIVATE KEY BLOCK-----'; //encrypted private key
+var passphrase = 'secret passphrase'; //what the privKey is encrypted with
+
+var privKeyObj = (await openpgp.key.readArmored(privkey)).keys[0];
+await privKeyObj.decrypt(passphrase);</code></pre><pre class="prettyprint source lang-js"><code>options = {
+    message: openpgp.message.fromBinary(readableStream),  // or .fromText(readableStream: ReadableStream&lt;String>)
+    privateKeys: [privKeyObj]                             // for signing
+};
+
+openpgp.sign(options).then(function(signed) {
+    signedArmor = signed.data; // ReadableStream containing '-----BEGIN PGP SIGNED MESSAGE ... END PGP SIGNATURE-----'
+});</code></pre><pre class="prettyprint source lang-js"><code>options = {
+    message: await openpgp.message.readArmored(signedArmor), // parse armored message
+    publicKeys: (await openpgp.key.readArmored(pubkey)).keys // for verification
+};
+
+openpgp.verify(options).then(async function(verified) {
+    await openpgp.stream.readToEnd(verified.data);
+    // Note: you *have* to read `verified.data` in some way or other,
+    // even if you don't need it, as that is what triggers the
+    // verification of the data.
+
+    validity = await verified.signatures[0].verified; // true
+    if (validity) {
+        console.log('signed by key id ' + verified.signatures[0].keyid.toHex());
+    }
 });</code></pre><h3>Documentation</h3><p>A jsdoc build of our code comments is available at <a href="https://openpgpjs.org/openpgpjs/doc/index.html">doc/index.html</a>. Public calls should generally be made through the OpenPGP object <a href="https://openpgpjs.org/openpgpjs/doc/module-openpgp.html">doc/openpgp.html</a>.</p>
+<p>For the documentation of <code>openpgp.stream</code>, see the documentation of <a href="https://openpgpjs.org/web-stream-tools/">the web-stream-tools dependency</a>.</p>
 <h3>Security Audit</h3><p>To date the OpenPGP.js code base has undergone two complete security audits from <a href="https://cure53.de">Cure53</a>. The first audit's report has been published <a href="https://github.com/openpgpjs/openpgpjs/wiki/Cure53-security-audit">here</a>.</p>
 <h3>Security recommendations</h3><p>It should be noted that js crypto apps deployed via regular web hosting (a.k.a. <a href="https://www.schneier.com/blog/archives/2012/08/cryptocat.html"><strong>host-based security</strong></a>) provide users with less security than installable apps with auditable static versions. Installable apps can be deployed as a <a href="https://developer.mozilla.org/en-US/Marketplace/Options/Packaged_apps">Firefox</a> or <a href="https://developer.chrome.com/apps/about_apps.html">Chrome</a> packaged app. These apps are basically signed zip files and their runtimes typically enforce a strict <a href="https://www.html5rocks.com/en/tutorials/security/content-security-policy/">Content Security Policy (CSP)</a> to protect users against <a href="https://en.wikipedia.org/wiki/Cross-site_scripting">XSS</a>. This <a href="https://tankredhase.com/2014/04/13/heartbleed-and-javascript-crypto/">blogpost</a> explains the trust model of the web quite well.</p>
 <p>It is also recommended to set a strong passphrase that protects the user's private key on disk.</p>
@@ -363,7 +485,7 @@ openpgp.verify(options).then(function(verified) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line36">line 36</a>
+        <a href="openpgp.js.html">openpgp.js</a>, <a href="openpgp.js.html#line37">line 37</a>
     </li></ul></dd>
     
 
@@ -408,13 +530,13 @@ openpgp.verify(options).then(function(verified) {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-polyfills.html">polyfills</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jul 19 2018 18:30:56 GMT+0200 (DST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Aug 14 2018 19:14:28 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>

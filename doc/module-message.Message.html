@@ -145,7 +145,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line50">line 50</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line52">line 52</a>
     </li></ul></dd>
     
 
@@ -303,7 +303,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line609">line 609</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line667">line 667</a>
     </li></ul></dd>
     
 
@@ -337,7 +337,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
 
     
-    <h4 class="name" id="armor"><span class="type-signature"></span>armor<span class="signature">()</span><span class="type-signature"> &rarr; {String}</span></h4>
+    <h4 class="name" id="armor"><span class="type-signature"></span>armor<span class="signature">()</span><span class="type-signature"> &rarr; {ReadableStream.&lt;String>}</span></h4>
     
 
     
@@ -389,7 +389,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line617">line 617</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line675">line 675</a>
     </li></ul></dd>
     
 
@@ -427,7 +427,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     </dt>
     <dd>
         
-<span class="param-type">String</span>
+<span class="param-type">ReadableStream.&lt;String></span>
 
 
     </dd>
@@ -546,7 +546,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line453">line 453</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line464">line 464</a>
     </li></ul></dd>
     
 
@@ -602,7 +602,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
 
     
-    <h4 class="name" id="decrypt"><span class="type-signature">(async) </span>decrypt<span class="signature">(privateKeys, passwords, sessionKeys)</span><span class="type-signature"> &rarr; {Promise.&lt;Message>}</span></h4>
+    <h4 class="name" id="decrypt"><span class="type-signature">(async) </span>decrypt<span class="signature">(privateKeys, passwords, sessionKeys, streaming)</span><span class="type-signature"> &rarr; {Promise.&lt;Message>}</span></h4>
     
 
     
@@ -712,6 +712,29 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to process data as a stream</p></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -749,7 +772,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line100">line 100</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line103">line 103</a>
     </li></ul></dd>
     
 
@@ -929,7 +952,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line147">line 147</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line153">line 153</a>
     </li></ul></dd>
     
 
@@ -985,7 +1008,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
 
     
-    <h4 class="name" id="encrypt"><span class="type-signature">(async) </span>encrypt<span class="signature">(keys, passwords, sessionKey, wildcard, date, userId)</span><span class="type-signature"> &rarr; {Promise.&lt;Message>}</span></h4>
+    <h4 class="name" id="encrypt"><span class="type-signature">(async) </span>encrypt<span class="signature">(keys, passwords, sessionKey, wildcard, date, userId, streaming)</span><span class="type-signature"> &rarr; {Promise.&lt;Message>}</span></h4>
     
 
     
@@ -1164,6 +1187,29 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to process data as a stream</p></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -1201,7 +1247,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line254">line 254</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line265">line 265</a>
     </li></ul></dd>
     
 
@@ -1309,7 +1355,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line61">line 61</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line63">line 63</a>
     </li></ul></dd>
     
 
@@ -1417,7 +1463,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line226">line 226</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line236">line 236</a>
     </li></ul></dd>
     
 
@@ -1528,7 +1574,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line217">line 217</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line227">line 227</a>
     </li></ul></dd>
     
 
@@ -1639,7 +1685,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line74">line 74</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line76">line 76</a>
     </li></ul></dd>
     
 
@@ -1747,7 +1793,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line235">line 235</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line245">line 245</a>
     </li></ul></dd>
     
 
@@ -1976,7 +2022,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line390">line 390</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line401">line 401</a>
     </li></ul></dd>
     
 
@@ -2202,7 +2248,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line477">line 477</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line488">line 488</a>
     </li></ul></dd>
     
 
@@ -2310,7 +2356,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line597">line 597</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line655">line 655</a>
     </li></ul></dd>
     
 
@@ -2366,7 +2412,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
 
     
-    <h4 class="name" id="verify"><span class="type-signature">(async) </span>verify<span class="signature">(keys, date)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;({keyid: <a href="module-type_keyid.html">module:type/keyid</a>, valid: Boolean})>>}</span></h4>
+    <h4 class="name" id="verify"><span class="type-signature">(async) </span>verify<span class="signature">(keys, date, streaming)</span><span class="type-signature"> &rarr; {Promise.&lt;Array.&lt;({keyid: <a href="module-type_keyid.html">module:type/keyid</a>, valid: Boolean})>>}</span></h4>
     
 
     
@@ -2453,6 +2499,29 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>streaming</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>(optional) whether to process data as a stream</p></td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -2490,7 +2559,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line530">line 530</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line542">line 542</a>
     </li></ul></dd>
     
 
@@ -2693,7 +2762,7 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="message.js.html">message.js</a>, <a href="message.js.html#line548">line 548</a>
+        <a href="message.js.html">message.js</a>, <a href="message.js.html#line589">line 589</a>
     </li></ul></dd>
     
 
@@ -2759,13 +2828,13 @@ See <a href="https://tools.ietf.org/html/rfc4880#section-11.3">https://tools.iet
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-cleartext.html">cleartext</a></li><li><a href="module-config.html">config</a></li><li><a href="module-config_localStorage.html">config/localStorage</a></li><li><a href="module-crypto.html">crypto</a></li><li><a href="module-crypto_aes_kw.html">crypto/aes_kw</a></li><li><a href="module-crypto_cfb.html">crypto/cfb</a></li><li><a href="module-crypto_cipher.html">crypto/cipher</a></li><li><a href="module-crypto_cmac.html">crypto/cmac</a></li><li><a href="module-crypto_crypto.html">crypto/crypto</a></li><li><a href="module-crypto_eax.html">crypto/eax</a></li><li><a href="module-crypto_gcm.html">crypto/gcm</a></li><li><a href="module-crypto_hash.html">crypto/hash</a></li><li><a href="module-crypto_ocb.html">crypto/ocb</a></li><li><a href="module-crypto_pkcs1.html">crypto/pkcs1</a></li><li><a href="module-crypto_pkcs5.html">crypto/pkcs5</a></li><li><a href="module-crypto_public_key.html">crypto/public_key</a></li><li><a href="module-crypto_public_key_dsa.html">crypto/public_key/dsa</a></li><li><a href="module-crypto_public_key_elgamal.html">crypto/public_key/elgamal</a></li><li><a href="module-crypto_public_key_elliptic.html">crypto/public_key/elliptic</a></li><li><a href="module-crypto_public_key_elliptic_curve.html">crypto/public_key/elliptic/curve</a></li><li><a href="module-crypto_public_key_elliptic_ecdh.html">crypto/public_key/elliptic/ecdh</a></li><li><a href="module-crypto_public_key_elliptic_ecdsa.html">crypto/public_key/elliptic/ecdsa</a></li><li><a href="module-crypto_public_key_elliptic_eddsa.html">crypto/public_key/elliptic/eddsa</a></li><li><a href="module-crypto_public_key_elliptic_key.html">crypto/public_key/elliptic/key</a></li><li><a href="module-crypto_public_key_prime.html">crypto/public_key/prime</a></li><li><a href="module-crypto_public_key_rsa.html">crypto/public_key/rsa</a></li><li><a href="module-crypto_random.html">crypto/random</a></li><li><a href="module-crypto_signature.html">crypto/signature</a></li><li><a href="module-encoding_armor.html">encoding/armor</a></li><li><a href="module-encoding_base64.html">encoding/base64</a></li><li><a href="module-enums.html">enums</a></li><li><a href="module-hkp.html">hkp</a></li><li><a href="module-key.html">key</a></li><li><a href="module-keyring.html">keyring</a></li><li><a href="module-keyring_keyring.html">keyring/keyring</a></li><li><a href="module-keyring_localstore.html">keyring/localstore</a></li><li><a href="module-message.html">message</a></li><li><a href="module-openpgp.html">openpgp</a></li><li><a href="module-packet.html">packet</a></li><li><a href="module-packet_all_packets.html">packet/all_packets</a></li><li><a href="module-packet_clone.html">packet/clone</a></li><li><a href="module-packet_packet.html">packet/packet</a></li><li><a href="module-polyfills.html">polyfills</a></li><li><a href="module-signature.html">signature</a></li><li><a href="module-type_ecdh_symkey.html">type/ecdh_symkey</a></li><li><a href="module-type_kdf_params.html">type/kdf_params</a></li><li><a href="module-type_keyid.html">type/keyid</a></li><li><a href="module-type_mpi.html">type/mpi</a></li><li><a href="module-type_oid.html">type/oid</a></li><li><a href="module-type_s2k.html">type/s2k</a></li><li><a href="module-util.html">util</a></li><li><a href="module-wkd.html">wkd</a></li><li><a href="module-worker_async_proxy.html">worker/async_proxy</a></li><li><a href="module-worker_worker.html">worker/worker</a></li></ul><h3>Classes</h3><ul><li><a href="module-cleartext.CleartextMessage.html">CleartextMessage</a></li><li><a href="module-config_localStorage-LocalStorage.html">LocalStorage</a></li><li><a href="module-crypto_public_key_elliptic_curve-Curve.html">Curve</a></li><li><a href="module-crypto_public_key_elliptic_key-KeyPair.html">KeyPair</a></li><li><a href="module-hkp-HKP.html">HKP</a></li><li><a href="module-key.Key.html">Key</a></li><li><a href="module-keyring_keyring-Keyring.html">Keyring</a></li><li><a href="module-keyring_localstore-LocalStore.html">LocalStore</a></li><li><a href="module-key-SubKey.html">SubKey</a></li><li><a href="module-key-User.html">User</a></li><li><a href="module-message.Message.html">Message</a></li><li><a href="module-packet.Compressed.html">Compressed</a></li><li><a href="module-packet.List.html">List</a></li><li><a href="module-packet.Literal.html">Literal</a></li><li><a href="module-packet.Marker.html">Marker</a></li><li><a href="module-packet.OnePassSignature.html">OnePassSignature</a></li><li><a href="module-packet.PublicKey.html">PublicKey</a></li><li><a href="module-packet.PublicKeyEncryptedSessionKey.html">PublicKeyEncryptedSessionKey</a></li><li><a href="module-packet.PublicSubkey.html">PublicSubkey</a></li><li><a href="module-packet.SecretKey.html">SecretKey</a></li><li><a href="module-packet.SecretSubkey.html">SecretSubkey</a></li><li><a href="module-packet.Signature.html">Signature</a></li><li><a href="module-packet.SymEncryptedAEADProtected.html">SymEncryptedAEADProtected</a></li><li><a href="module-packet.SymEncryptedIntegrityProtected.html">SymEncryptedIntegrityProtected</a></li><li><a href="module-packet.SymEncryptedSessionKey.html">SymEncryptedSessionKey</a></li><li><a href="module-packet.SymmetricallyEncrypted.html">SymmetricallyEncrypted</a></li><li><a href="module-packet.Trust.html">Trust</a></li><li><a href="module-packet.UserAttribute.html">UserAttribute</a></li><li><a href="module-packet.Userid.html">Userid</a></li><li><a href="module-signature.Signature.html">Signature</a></li><li><a href="module-type_ecdh_symkey-ECDHSymmetricKey.html">ECDHSymmetricKey</a></li><li><a href="module-type_kdf_params-KDFParams.html">KDFParams</a></li><li><a href="module-type_keyid-Keyid.html">Keyid</a></li><li><a href="module-type_mpi-MPI.html">MPI</a></li><li><a href="module-type_oid-OID.html">OID</a></li><li><a href="module-type_s2k-S2K.html">S2K</a></li><li><a href="module-wkd-WKD.html">WKD</a></li><li><a href="module-worker_async_proxy-AsyncProxy.html">AsyncProxy</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-crypto_pkcs1-eme.html">eme</a></li><li><a href="module-crypto_pkcs1-emsa.html">emsa</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Thu Jul 19 2018 18:30:56 GMT+0200 (DST)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Tue Aug 14 2018 19:14:28 GMT+0200 (DST)
 </footer>
 
 <script> prettyPrint(); </script>
